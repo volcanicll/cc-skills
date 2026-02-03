@@ -1,0 +1,25 @@
+{
+  "name": "volcanic-skills",
+  "owner": {
+    "name": "volcanic",
+    "email": "",
+    "url": "https://github.com/volcanicll"
+  },
+  "metadata": {
+    "description": "Personal collection of Claude Agent Skills for development productivity and workflow automation",
+    "version": "1.0.0",
+    "homepage": "https://github.com/volcanicll/cc-skills"
+  },
+  "plugins": [
+    {
+      "name": "development-tools",
+      "description": "Development workflow and productivity tools",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/commit-work-items",
+        "./skills/skill-manager"
+      ]
+    }
+  ]
+}
