@@ -65,3 +65,11 @@ yarn.lock
 # Claude Code specific
 .claude/
 .claude-plugin/cache/
+.conductor
+
+_data/
+
+
+
+
+
