@@ -166,17 +166,9 @@ For a single reference photo:
 - no unnecessary scenery
 - avatar occupies approximately 65–80% of the canvas height
 
-For multiple reference photos of the same person:
-
-- generate one corresponding avatar for each reference
-- keep the same drawing style, proportions and visual language
-- preserve the individual pose, expression and accessories of each reference
-
-Do not merge multiple reference photos into one face.
-
 ## Multi-Reference Transformation
 
-When the input is a collage such as `photo 1 → avatar 1`, `photo 2 → avatar 2`, treat each photo independently.
+When the input is a collage such as `photo 1 → avatar 1`, `photo 2 → avatar 2`, treat each photo independently. Do not merge multiple reference photos into one face.
 
 For each source image:
 
