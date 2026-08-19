@@ -17,8 +17,9 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/commit-work-items",
-        "./skills/skill-manager"
+        "./skills/development/commit-work-items",
+        "./skills/development/git-history-cleaner",
+        "./skills/meta/skill-manager"
       ]
     }
   ]
