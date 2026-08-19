@@ -80,7 +80,7 @@ python3 scripts/sync_marketplace.py --verbose
 4. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
 5. 遵循 `AGENTS.md` 的 Git 提交规范提交：
    ```
-   feat(skills): 添加 xxx 技能
+   feat(skills): add xxx skill
    ```
 
 ## 校验清单

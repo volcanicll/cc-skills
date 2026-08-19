@@ -3,7 +3,7 @@
 ## 语言
 
 - 沟通与说明使用中文
-- 提交信息描述使用中文
+- 提交信息描述使用英文
 - 变量、文件命名使用英文
 
 ## Git 提交规范（强制）
@@ -18,7 +18,7 @@
 
 - `<type>`：必填，见下方枚举
 - `<scope>`：可选，影响范围（如 `skill-manager`、`commit-work-items`、`docs`）
-- `<description>`：中文，简洁描述本次改动做了什么
+- `<description>`：英文，简洁描述本次改动做了什么
 
 ### Type 枚举
 
@@ -36,10 +36,10 @@
 ### 示例
 
 ```
-feat(user): 添加用户登录功能
-fix(api): 修复接口调用超时问题
-docs: 更新 README 文档
-refactor(skill-manager): 重构包管理逻辑
+feat(user): add user login feature
+fix(api): fix API call timeout issue
+docs: update README documentation
+refactor(skill-manager): refactor package management logic
 ```
 
 ### 规则
