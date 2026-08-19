@@ -56,3 +56,37 @@ refactor(skill-manager): 重构包管理逻辑
 - [ ] 提交信息符合上述格式
 - [ ] 无调试代码与注释掉的代码
 - [ ] 新文件已加入版本控制
+
+## 技能开发规范（强制）
+
+### 目录结构
+
+每个 skill 位于 `skills/<category>/<skill-name>/`：
+
+- `<category>`：分类名，可选值为 `creative`、`development`、`learning`、`meta`，与 `skills/` 下的一级目录对应
+- `<skill-name>`：英文短横线命名（kebab-case），例如 `image-to-hand-drawn`
+
+每个 skill 必须包含 `SKILL.md`，且 frontmatter 满足以下要求：
+
+- `name`：必填，必须与 skill 目录名一致
+- `description`：必填，说明该 skill 的用途与触发场景
+
+### Marketplace 维护
+
+- `.claude-plugin/marketplace.json` 由脚本生成，**禁止手动编辑**
+- 新增、删除或重命名 skill 后，必须运行同步脚本重新生成：
+  ```bash
+  python3 scripts/sync_marketplace.py
+  ```
+- 提交前运行校验，确保 marketplace 与 `skills/` 目录一致：
+  ```bash
+  python3 scripts/sync_marketplace.py --check
+  ```
+
+### 新增 skill 流程
+
+1. 创建 `skills/<category>/<skill-name>/SKILL.md`，frontmatter 含合法的 `name` 与 `description`
+2. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
+3. 更新 `README.md` 中的技能表格与仓库结构图
+4. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
+5. 按本文件的 Git 提交规范提交

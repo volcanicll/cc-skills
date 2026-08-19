@@ -23,18 +23,30 @@ For more information about the Agent Skills standard, visit [agentskills.io](htt
 /plugin marketplace add volcanicll/cc-skills
 ```
 
-Then install the plugin:
+The marketplace provides the following plugins (one per skill category):
+
+| Plugin | Category | Skills |
+|--------|----------|--------|
+| `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn |
+| `development-tools` | 开发工具 | commit-work-items, git-history-cleaner |
+| `learning-tools` | 学习教育 | exam-learning-assistant |
+| `meta-tools` | 元工具 | skill-manager |
+
+Then install the plugin(s) you need:
 ```
 1. Run: /plugin marketplace
 2. Select "volcanic-skills"
-3. Select "development-tools"
+3. Select a plugin, e.g. "creative-tools"
 4. Select "Install now"
 ```
 
 ### Direct Installation
 
 ```bash
-/plugin install development-tools@volcanic-skills
+# 安装单个插件（例如创意设计工具）
+/plugin install creative-tools@volcanic-skills
+# 安装全部插件
+/plugin install creative-tools@volcanic-skills development-tools@volcanic-skills learning-tools@volcanic-skills meta-tools@volcanic-skills
 ```
 
 ### Manual Installation
@@ -91,6 +103,10 @@ cc-skills/
 │   │   └── exam-learning-assistant/ # Exam practice automation
 │   └── meta/                  # Meta tooling
 │       └── skill-manager/         # Skills package manager
+├── scripts/
+│   └── sync_marketplace.py      # Sync & validate marketplace.json
+├── AGENTS.md                   # Project collaboration & skill standards
+├── CONTRIBUTING.md             # Contribution guide
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -106,6 +122,15 @@ skill-name/
 ├── scripts/                   # Optional: Executable scripts
 ├── references/                # Optional: Documentation and references
 └── assets/                    # Optional: Templates and resources
+```
+
+### 规范与自动化
+
+开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 `AGENTS.md` 中的「技能开发规范」。新增或修改 skill 后，运行以下命令同步并校验 marketplace 配置：
+
+```bash
+python3 scripts/sync_marketplace.py          # 重新生成 marketplace.json
+python3 scripts/sync_marketplace.py --check  # 提交前校验
 ```
 
 ### Minimal SKILL.md Template
