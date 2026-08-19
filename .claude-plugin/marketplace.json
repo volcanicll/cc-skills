@@ -12,13 +12,40 @@
   },
   "plugins": [
     {
+      "name": "creative-tools",
+      "description": "Creative design tools: photo-to-illustration and avatar generation",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/creative/image-to-hand-drawn",
+        "./skills/creative/naive-doodle-avatar"
+      ]
+    },
+    {
       "name": "development-tools",
       "description": "Development workflow and productivity tools",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/development/commit-work-items",
-        "./skills/development/git-history-cleaner",
+        "./skills/development/git-history-cleaner"
+      ]
+    },
+    {
+      "name": "learning-tools",
+      "description": "Learning and education tools",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/learning/exam-learning-assistant"
+      ]
+    },
+    {
+      "name": "meta-tools",
+      "description": "Meta tooling for managing Agent Skills",
+      "source": "./",
+      "strict": false,
+      "skills": [
         "./skills/meta/skill-manager"
       ]
     }
