@@ -28,7 +28,7 @@ The marketplace provides the following plugins (one per skill category):
 | Plugin | Category | Skills |
 |--------|----------|--------|
 | `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn, photo-to-editorial-poster |
-| `development-tools` | 开发工具 | commit-work-items, git-history-cleaner |
+| `development-tools` | 开发工具 | git-history-cleaner |
 | `learning-tools` | 学习教育 | exam-learning-assistant |
 | `meta-tools` | 元工具 | skill-manager |
 
@@ -64,7 +64,6 @@ Copy individual skill folders to your Claude skills directory.
 
 | Skill | Description |
 |-------|-------------|
-| **commit-work-items** | 从 Git 仓库 commit 信息生成工作项并导出到研发云 Excel 模板。支持工时报表整理、批量生成研发云导入工作项、自动估算开发工时 |
 | **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
 
 ### Creative (创意设计)
@@ -99,7 +98,6 @@ cc-skills/
 │   │   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
 │   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
 │   ├── development/           # Development tools
-│   │   ├── commit-work-items/     # Git commit to work items generator
 │   │   └── git-history-cleaner/   # Git repository history cleaner
 │   ├── learning/              # Learning & education
 │   │   └── exam-learning-assistant/ # Exam practice automation

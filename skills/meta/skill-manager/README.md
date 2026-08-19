@@ -26,7 +26,7 @@
 python scripts/manager.py list
 
 # 安装一个 skill
-python scripts/manager.py install commit-work-items
+python scripts/manager.py install git-history-cleaner
 
 # 更新所有已安装的 skills
 python scripts/manager.py update
@@ -37,7 +37,7 @@ python scripts/manager.py update
 ```bash
 cd skills/skill-manager
 python -m scripts list
-python -m scripts install commit-work-items
+python -m scripts install git-history-cleaner
 python -m scripts update
 ```
 
@@ -103,7 +103,7 @@ python scripts/manager.py list
 🔍 Available Skills in Remote Registries:
 
 📦 Registry: cc-skills
-  - commit-work-items              ✅ Installed
+  - git-history-cleaner              ✅ Installed
   - skill-manager                  ✅ Installed
   - example-skill                     Available
 ```
@@ -112,10 +112,10 @@ python scripts/manager.py list
 
 ```bash
 # 基本安装
-python scripts/manager.py install commit-work-items
+python scripts/manager.py install git-history-cleaner
 
 # 强制覆盖安装
-python scripts/manager.py install commit-work-items --force
+python scripts/manager.py install git-history-cleaner --force
 ```
 
 ### update - 更新所有 skills
@@ -130,7 +130,7 @@ python scripts/manager.py update
 🚀 Updating all installed skills...
 
 📋 Local skills identified: 2
-   ✅ Updated: commit-work-items
+   ✅ Updated: git-history-cleaner
    ✅ Updated: skill-manager
 
 ✨ Update complete. 2 skills processed.
@@ -181,10 +181,10 @@ manager = SkillManager()
 manager.list_skills()
 
 # 安装 skill
-manager.install_skill("commit-work-items")
+manager.install_skill("git-history-cleaner")
 
 # 强制重新安装
-manager.install_skill("commit-work-items", force=True)
+manager.install_skill("git-history-cleaner", force=True)
 
 # 更新所有已安装的 skills
 manager.update_all()
@@ -201,7 +201,7 @@ manager.update_all()
 python scripts/manager.py list
 
 # 2. 安装需要的 skills
-python scripts/manager.py install commit-work-items
+python scripts/manager.py install git-history-cleaner
 python scripts/manager.py install code-review
 ```
 
@@ -216,7 +216,7 @@ python scripts/manager.py update
 
 ```bash
 # 强制覆盖本地 skill
-python scripts/manager.py install commit-work-items --force
+python scripts/manager.py install git-history-cleaner --force
 ```
 
 ---
@@ -228,14 +228,14 @@ Skill Manager 假设以下目录结构：
 ```
 # 本地 skills 目录（目标）
 .agent/skills/
-├── commit-work-items/
+├── git-history-cleaner/
 ├── skill-manager/
 └── other-skill/
 
 # 远程仓库结构（源）
 github.com/user/cc-skills/
 ├── skills/
-│   ├── commit-work-items/
+│   ├── git-history-cleaner/
 │   ├── skill-manager/
 │   └── other-skill/
 ```

@@ -17,7 +17,7 @@
 ```
 
 - `<type>`：必填，见下方枚举
-- `<scope>`：可选，影响范围（如 `skill-manager`、`commit-work-items`、`docs`）
+- `<scope>`：可选，影响范围（如 `skill-manager`、`docs`）
 - `<description>`：英文，简洁描述本次改动做了什么
 
 ### Type 枚举

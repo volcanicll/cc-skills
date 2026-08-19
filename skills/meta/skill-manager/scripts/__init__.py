@@ -7,7 +7,7 @@ Example:
     >>> from skill_manager import SkillManager
     >>> manager = SkillManager()
     >>> manager.list_skills()
-    >>> manager.install_skill("commit-work-items")
+    >>> manager.install_skill("git-history-cleaner")
     >>> manager.update_all()
 """
 

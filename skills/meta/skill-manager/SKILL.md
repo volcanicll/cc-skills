@@ -32,7 +32,7 @@ Download and install a specific skill.
 ```bash
 python3 .agent/skills/skill-manager/scripts/manager.py install <skill_name>
 # Example:
-python3 .agent/skills/skill-manager/scripts/manager.py install commit-work-items
+python3 .agent/skills/skill-manager/scripts/manager.py install git-history-cleaner
 ```
 
 **3. Update All Skills**

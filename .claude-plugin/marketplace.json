@@ -28,7 +28,6 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/development/commit-work-items",
         "./skills/development/git-history-cleaner"
       ]
     },
