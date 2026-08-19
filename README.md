@@ -60,6 +60,7 @@ Copy individual skill folders to your Claude skills directory.
 | Skill | Description |
 |-------|-------------|
 | **naive-doodle-avatar** | 将真人肖像照片转换为可爱、儿童风、手绘风格的 chibi 涂鸦头像，保留发型、眼镜、脸型、表情、配饰等识别特征 |
+| **image-to-hand-drawn** | 将整张照片转换为高质量手绘插图，保留人物、景观、水体、植被、动物、建筑等完整场景元素，仅简化视觉噪点而非移除环境 |
 
 ### Learning (学习教育)
 
@@ -81,7 +82,8 @@ cc-skills/
 │   └── marketplace.json      # Plugin marketplace configuration
 ├── skills/                    # Skill directories (categorized)
 │   ├── creative/              # Creative & design
-│   │   └── naive-doodle-avatar/   # Photo to hand-drawn doodle avatar
+│   │   ├── naive-doodle-avatar/   # Photo to hand-drawn doodle avatar
+│   │   └── image-to-hand-drawn/   # Photo to hand-drawn illustration
 │   ├── development/           # Development tools
 │   │   ├── commit-work-items/     # Git commit to work items generator
 │   │   └── git-history-cleaner/   # Git repository history cleaner
@@ -128,6 +130,7 @@ Once installed, skills activate automatically based on context:
 - "用 skill-manager 查看可用的 skills"
 - "帮我安装 baoyu-comic skill"
 - "把这张照片变成手绘涂鸦头像"
+- "把这张照片变成完整场景的手绘插图"
 
 ## Contributing
 
