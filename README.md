@@ -27,7 +27,7 @@ The marketplace provides the following plugins (one per skill category):
 
 | Plugin | Category | Skills |
 |--------|----------|--------|
-| `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn |
+| `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn, photo-to-editorial-poster |
 | `development-tools` | 开发工具 | commit-work-items, git-history-cleaner |
 | `learning-tools` | 学习教育 | exam-learning-assistant |
 | `meta-tools` | 元工具 | skill-manager |
@@ -73,6 +73,7 @@ Copy individual skill folders to your Claude skills directory.
 |-------|-------------|
 | **naive-doodle-avatar** | 将真人肖像照片转换为可爱、儿童风、手绘风格的 chibi 涂鸦头像，保留发型、眼镜、脸型、表情、配饰等识别特征 |
 | **image-to-hand-drawn** | 将整张照片转换为高质量手绘插图，保留人物、景观、水体、植被、动物、建筑等完整场景元素，仅简化视觉噪点而非移除环境 |
+| **photo-to-editorial-poster** | 将每张照片转换为独立的 3:4 编辑风海报：上半部分保留原照片并做杂志级精修调色，下半部分将主体重新诠释为轻快、稚拙、复古的手绘编辑插画，融合水彩、水粉、彩铅等混合媒介质感与有限高明度配色 |
 
 ### Learning (学习教育)
 
@@ -95,7 +96,8 @@ cc-skills/
 ├── skills/                    # Skill directories (categorized)
 │   ├── creative/              # Creative & design
 │   │   ├── naive-doodle-avatar/   # Photo to hand-drawn doodle avatar
-│   │   └── image-to-hand-drawn/   # Photo to hand-drawn illustration
+│   │   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
+│   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
 │   ├── development/           # Development tools
 │   │   ├── commit-work-items/     # Git commit to work items generator
 │   │   └── git-history-cleaner/   # Git repository history cleaner

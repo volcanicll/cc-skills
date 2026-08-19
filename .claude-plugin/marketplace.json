@@ -18,7 +18,8 @@
       "strict": false,
       "skills": [
         "./skills/creative/image-to-hand-drawn",
-        "./skills/creative/naive-doodle-avatar"
+        "./skills/creative/naive-doodle-avatar",
+        "./skills/creative/photo-to-editorial-poster"
       ]
     },
     {
