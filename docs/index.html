@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volcanic's Claude Skills</title>
+  <meta name="description" content="Personal collection of Claude Agent Skills for development productivity and workflow automation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Noto+Serif+SC:wght@400;600;700&family=Source+Han+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: oklch(0.958 0.008 85);
+      --paper-deep: oklch(0.925 0.012 85);
+      --ink: oklch(0.22 0.02 160);
+      --ink-soft: oklch(0.38 0.018 160);
+      --ink-faint: oklch(0.52 0.014 160);
+      --accent: oklch(0.52 0.11 165);
+      --accent-hover: oklch(0.46 0.12 165);
+      --terracotta: oklch(0.62 0.14 40);
+      --terracotta-soft: oklch(0.88 0.05 45);
+      --line: oklch(0.82 0.015 160);
+      --serif: "Fraunces", "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      --sans: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    ::selection {
+      background: var(--terracotta-soft);
+      color: var(--ink);
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 8px;
+      z-index: 100;
+      background: var(--ink);
+      color: var(--paper);
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .skip-link:focus { left: 8px; }
+
+    /* ── Nav ─────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+
+    .nav-brand {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .nav-links a {
+      color: var(--ink-soft);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+
+    .nav-cta {
+      background: var(--ink);
+      color: var(--paper) !important;
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: oklch(0.30 0.02 160); }
+
+    /* ── Hero ────────────────────────── */
+    .hero {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 80px 24px 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      font-family: var(--serif);
+      font-weight: 580;
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.12;
+      letter-spacing: -0.022em;
+      text-wrap: balance;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 17px;
+      color: var(--ink-soft);
+      max-width: 440px;
+      text-wrap: pretty;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 22px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      transition: transform 0.15s ease-out, background 0.2s, box-shadow 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: oklch(0.98 0.01 160);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 2px 12px oklch(0.52 0.11 165 / 0.25);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: transparent;
+    }
+    .btn-secondary:hover {
+      border-color: var(--ink-faint);
+      background: var(--paper-deep);
+    }
+
+    /* hero visual */
+    .hero-visual {
+      position: relative;
+      aspect-ratio: 4/3;
+      border-radius: 12px;
+      background: var(--paper-deep);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .hero-visual-inner {
+      text-align: center;
+      padding: 32px;
+    }
+
+    .hero-visual-label {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 15px;
+      color: var(--ink-faint);
+      margin-bottom: 8px;
+    }
+
+    .hero-visual-count {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 72px;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .hero-visual-sub {
+      font-size: 13px;
+      color: var(--ink-faint);
+      margin-top: 6px;
+    }
+
+    .hero-visual-tag {
+      position: absolute;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 12px;
+      color: var(--terracotta);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 4px 12px;
+      white-space: nowrap;
+    }
+    .tag-1 { top: 12%; left: 8%; transform: rotate(-4deg); }
+    .tag-2 { top: 22%; right: 6%; transform: rotate(3deg); }
+    .tag-3 { bottom: 14%; left: 14%; transform: rotate(2deg); }
+    .tag-4 { bottom: 22%; right: 10%; transform: rotate(-3deg); }
+
+    /* ── Section base ────────────────── */
+    section {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--terracotta);
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-family: var(--serif);
+      font-weight: 560;
+      font-size: clamp(26px, 3.5vw, 36px);
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      text-wrap: balance;
+    }
+
+    .section-sub {
+      font-size: 15px;
+      color: var(--ink-soft);
+      max-width: 520px;
+      margin-bottom: 40px;
+      text-wrap: pretty;
+    }
+
+    /* ── Skill categories ────────────── */
+    .cat-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .cat-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 32px;
+      padding: 40px 0;
+      border-top: 1px solid var(--line);
+    }
+    .cat-row:last-child { border-bottom: 1px solid var(--line); }
+
+    .cat-name {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .cat-count {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--terracotta);
+    }
+
+    .skill-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .skill-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: var(--paper);
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s ease-out;
+    }
+    .skill-item:hover {
+      border-color: var(--line);
+      background: var(--paper-deep);
+      transform: translateY(-1px);
+    }
+
+    .skill-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .skill-desc {
+      font-size: 14px;
+      color: var(--ink-faint);
+      flex: 1;
+      text-align: right;
+    }
+
+    /* ── Install ─────────────────────── */
+    .install-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 32px;
+    }
+
+    .install-card {
+      background: var(--paper-deep);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .install-card h3 {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 17px;
+      margin-bottom: 16px;
+    }
+
+    .install-card pre {
+      background: var(--ink);
+      color: oklch(0.88 0.01 160);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .install-card p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-top: 12px;
+    }
+
+    /* ── Footer ──────────────────────── */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 24px;
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--ink-faint);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+    .footer-links a {
+      color: var(--ink-soft);
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--ink); }
+
+    /* ── Reveal on scroll ────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Responsive ──────────────────── */
+    @media (max-width: 768px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 48px;
+        gap: 32px;
+      }
+      .hero-visual { min-height: 260px; }
+      .cat-row { grid-template-columns: 1fr; gap: 12px; padding: 28px 0; }
+      .install-grid { grid-template-columns: 1fr; }
+      .skill-item { flex-direction: column; gap: 4px; }
+      .skill-desc { text-align: left; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<nav>
+  <a class="nav-brand" href="#">Volcanic's Skills</a>
+  <div class="nav-links">
+    <a href="#skills">技能</a>
+    <a href="#install">安装</a>
+    <a class="nav-cta" href="https://github.com/volcanicll/cc-skills" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<main id="main-content">
+
+  <div class="hero">
+    <div class="reveal visible">
+      <div class="hero-eyebrow">Claude Agent Skills</div>
+      <h1>一套手作的 Claude 技能集，让工作流更顺手。</h1>
+      <p>从照片转手绘头像到 Git 历史清理，从考试练习到技能包管理。六个模块化技能，装上就能用。</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#install">开始安装</a>
+        <a class="btn btn-secondary" href="#skills">浏览技能</a>
+      </div>
+    </div>
+    <div class="hero-visual reveal visible" aria-hidden="true">
+      <div class="hero-visual-inner">
+        <div class="hero-visual-label">共收录</div>
+        <div class="hero-visual-count">6</div>
+        <div class="hero-visual-sub">个 Agent Skills</div>
+      </div>
+      <span class="hero-visual-tag tag-1">手绘头像</span>
+      <span class="hero-visual-tag tag-2">Git 清理</span>
+      <span class="hero-visual-tag tag-3">考试助手</span>
+      <span class="hero-visual-tag tag-4">编辑海报</span>
+    </div>
+  </div>
+
+  <section id="skills">
+    <div class="reveal">
+      <div class="section-label">技能分类</div>
+      <h2 class="section-title">四个方向，六种能力</h2>
+      <p class="section-sub">每个技能是一个独立的文件夹，包含 SKILL.md 指令与可选脚本。Claude 根据上下文自动激活对应技能。</p>
+    </div>
+
+    <div class="cat-grid">
+      <div class="cat-row reveal">
+        <div class="cat-name">创意设计 <span class="cat-count">3</span></div>
+        <div class="skill-list">
+          <div class="skill-item">
+            <span class="skill-name">naive-doodle-avatar</span>
+            <span class="skill-desc">将真人肖像照片转为可爱的手绘 chibi 涂鸦头像，保留发型、眼镜等识别特征</span>
+          </div>
+          <div class="skill-item">
+            <span class="skill-name">image-to-hand-drawn</span>
+            <span class="skill-desc">将整张照片转换为高质量手绘插图，保留完整场景元素</span>
+          </div>
+          <div class="skill-item">
+            <span class="skill-name">photo-to-editorial-poster</span>
+            <span class="skill-desc">将照片转为编辑风海报：上半部精修调色，下半部手绘插画</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-row reveal">
+        <div class="cat-name">开发工具 <span class="cat-count">1</span></div>
+        <div class="skill-list">
+          <div class="skill-item">
+            <span class="skill-name">git-history-cleaner</span>
+            <span class="skill-desc">清理 Git 仓库历史中的大文件，使用 git-filter-repo 重写历史并压缩仓库体积</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-row reveal">
+        <div class="cat-name">学习教育 <span class="cat-count">1</span></div>
+        <div class="skill-list">
+          <div class="skill-item">
+            <span class="skill-name">exam-learning-assistant</span>
+            <span class="skill-desc">考试练习自动化助手，支持多种学习模式、错题复盘、考试报告生成</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cat-row reveal">
+        <div class="cat-name">元工具 <span class="cat-count">1</span></div>
+        <div class="skill-list">
+          <div class="skill-item">
+            <span class="skill-name">skill-manager</span>
+            <span class="skill-desc">Agent Skills 包管理器，支持从远程 Git 注册表列出、安装、更新技能</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="reveal">
+      <div class="section-label">安装方式</div>
+      <h2 class="section-title">两种安装方式</h2>
+      <p class="section-sub">推荐通过 Claude Code Marketplace 安装，按需选择分类插件。</p>
+    </div>
+
+    <div class="install-grid">
+      <div class="install-card reveal">
+        <h3>Marketplace 安装</h3>
+        <pre><code>/plugin marketplace add volcanicll/cc-skills</code></pre>
+        <p>添加后运行 <code style="font-family:ui-monospace;font-size:13px;">/plugin marketplace</code>，选择 volcanic-skills 并安装需要的分类插件。</p>
+      </div>
+      <div class="install-card reveal">
+        <h3>直接安装</h3>
+        <pre><code>/plugin install creative-tools@volcanic-skills</code></pre>
+        <p>也可以一次安装全部四个分类插件，或手动 clone 仓库复制技能文件夹。</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>Volcanic's Claude Skills &middot; MIT License</span>
+    <div class="footer-links">
+      <a href="https://github.com/volcanicll/cc-skills" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://agentskills.io" target="_blank" rel="noopener">Agent Skills Spec</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
