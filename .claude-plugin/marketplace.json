@@ -28,6 +28,7 @@
       "source": "./",
       "strict": false,
       "skills": [
+        "./skills/development/changelog-writer",
         "./skills/development/git-history-cleaner"
       ]
     },
