@@ -29,7 +29,7 @@ The marketplace provides the following plugins (one per skill category):
 |--------|----------|--------|
 | `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn, photo-to-editorial-poster |
 | `development-tools` | 开发工具 | git-history-cleaner |
-| `learning-tools` | 学习教育 | exam-learning-assistant |
+| `learning-tools` | 学习教育 | eli5, exam-learning-assistant |
 | `meta-tools` | 元工具 | skill-manager |
 
 Then install the plugin(s) you need:
@@ -79,6 +79,7 @@ Copy individual skill folders to your Claude skills directory.
 
 | Skill | Description |
 |-------|-------------|
+| **eli5** | ELI5 解释器。用超级通俗的方式解释任何主题、代码或系统——像对完全不懂这个领域的人说话——并生成一个漂亮的 HTML 可视化页面（大图 + 很少文字 + 清晰流程图） |
 | **exam-learning-assistant** | 考试练习自动化助手。支持多种学习模式、题目匹配、错题复盘、考试报告生成 |
 
 ### Meta (元工具)
@@ -102,6 +103,7 @@ cc-skills/
 │   │   ├── changelog-writer/      # Commit history to release notes
 │   │   └── git-history-cleaner/   # Git repository history cleaner
 │   ├── learning/              # Learning & education
+│   │   ├── eli5/                  # Simple visual explanations as HTML artifacts
 │   │   └── exam-learning-assistant/ # Exam practice automation
 │   └── meta/                  # Meta tooling
 │       └── skill-manager/         # Skills package manager
@@ -158,6 +160,8 @@ Once installed, skills activate automatically based on context:
 - "帮我安装 baoyu-comic skill"
 - "把这张照片变成手绘涂鸦头像"
 - "把这张照片变成完整场景的手绘插图"
+- "/eli5 how does this module work"
+- "用大白话解释一下什么是数据库索引"
 
 ## Contributing
 

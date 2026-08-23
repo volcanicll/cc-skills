@@ -38,6 +38,7 @@
       "source": "./",
       "strict": false,
       "skills": [
+        "./skills/learning/eli5",
         "./skills/learning/exam-learning-assistant"
       ]
     },
