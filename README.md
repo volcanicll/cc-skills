@@ -28,7 +28,7 @@ The marketplace provides the following plugins (one per skill category):
 | Plugin | Category | Skills |
 |--------|----------|--------|
 | `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn, photo-to-editorial-poster |
-| `development-tools` | 开发工具 | git-history-cleaner |
+| `development-tools` | 开发工具 | changelog-writer, git-history-cleaner, swagger-docs |
 | `learning-tools` | 学习教育 | eli5, exam-learning-assistant |
 | `meta-tools` | 元工具 | skill-manager |
 
@@ -66,6 +66,7 @@ Copy individual skill folders to your Claude skills directory.
 |-------|-------------|
 | **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
 | **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 |
+| **swagger-docs** | 将 Swagger/OpenAPI 接口文档同步到本地离线缓存，支持按路径/关键字/标签/权限编码搜索接口、查看接口详情与 TypeScript 类型定义、查询 schema |
 
 ### Creative (创意设计)
 
@@ -101,7 +102,8 @@ cc-skills/
 │   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
 │   ├── development/           # Development tools
 │   │   ├── changelog-writer/      # Commit history to release notes
-│   │   └── git-history-cleaner/   # Git repository history cleaner
+│   │   ├── git-history-cleaner/   # Git repository history cleaner
+│   │   └── swagger-docs/          # Offline Swagger/OpenAPI docs query
 │   ├── learning/              # Learning & education
 │   │   ├── eli5/                  # Simple visual explanations as HTML artifacts
 │   │   └── exam-learning-assistant/ # Exam practice automation
@@ -157,6 +159,7 @@ Once installed, skills activate automatically based on context:
 **Examples:**
 - "根据这个月的 commit 记录生成工时报表"
 - "用 skill-manager 查看可用的 skills"
+- "查一下订单模块的接口定义（Swagger 文档）"
 - "帮我安装 baoyu-comic skill"
 - "把这张照片变成手绘涂鸦头像"
 - "把这张照片变成完整场景的手绘插图"
