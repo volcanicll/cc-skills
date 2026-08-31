@@ -1,0 +1,3 @@
+@echo off
+rem Windows 入口：py -3 scripts\rdc_workflow --config config.yaml <cmd> ...
+py -3 "%~dp0rdc_workflow" %*

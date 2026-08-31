@@ -1,0 +1,9 @@
+# 本地配置与鉴权（含密钥，禁止提交）
+config.yaml
+auth.json
+
+# 运行生成的临时文件
+commits.json
+work_items.json
+*.xlsx
+flow/
