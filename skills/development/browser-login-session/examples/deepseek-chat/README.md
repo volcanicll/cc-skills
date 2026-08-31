@@ -32,6 +32,7 @@ python3 deepseek_chat.py --session-id <id> --parent-message-id <id> --prompt "�
 | `deepseek_chat.py` | 可运行示例脚本（依赖核心实现 `scripts/browser_cdp.py`） |
 | `pow_solve.mjs` / `sha3_wasm_bg.wasm` | PoW 求解所需资源（Node 内置 WebAssembly） |
 | `raw-request.md` | 原始输入：浏览器抓包骨架 |
+| `deepseek-protocol.md` | 协议细节：PoW、续聊语义、CRDT 流格式 |
 | `README.md` | 本文件：设计总结 |
 
 ## 复盘要点
@@ -41,4 +42,4 @@ python3 deepseek_chat.py --session-id <id> --parent-message-id <id> --prompt "�
   不是老的 `type:delta`，必须按 fragment（THINK/RESPONSE）重组；
 - 续聊必须传 `parent_message_id`（线程最后一条消息 id），否则模型丢失上下文。
 
-协议细节见 `../../references/deepseek-protocol.md`。
+协议细节见本目录的 `deepseek-protocol.md`。

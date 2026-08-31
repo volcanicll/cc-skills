@@ -20,7 +20,12 @@
     "architecture": "references/architecture.md",
     "endpoint-matrix": "references/endpoint-matrix.md",
     "security": "references/security.md",
-    "deepseek-protocol": "references/deepseek-protocol.md",
     "skill-authoring": "references/skill-authoring.md"
+  },
+  "examples": {
+    "deepseek-chat": {
+      "run": "examples/deepseek-chat/deepseek_chat.py",
+      "protocol": "examples/deepseek-chat/deepseek-protocol.md"
+    }
   }
 }
