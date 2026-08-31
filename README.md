@@ -64,6 +64,7 @@ Copy individual skill folders to your Claude skills directory.
 
 | Skill | Description |
 |-------|-------------|
+| **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖 |
 | **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
 | **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 |
 
@@ -100,6 +101,7 @@ cc-skills/
 │   │   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
 │   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
 │   ├── development/           # Development tools
+│   │   ├── browser-login-session/ # Reuse browser logged-in session via CDP
 │   │   ├── changelog-writer/      # Commit history to release notes
 │   │   └── git-history-cleaner/   # Git repository history cleaner
 │   ├── learning/              # Learning & education

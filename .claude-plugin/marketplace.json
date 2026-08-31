@@ -28,6 +28,7 @@
       "source": "./",
       "strict": false,
       "skills": [
+        "./skills/development/browser-login-session",
         "./skills/development/changelog-writer",
         "./skills/development/git-history-cleaner"
       ]
