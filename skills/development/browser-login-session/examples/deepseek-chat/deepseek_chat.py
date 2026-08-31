@@ -3,8 +3,8 @@
 """
 deepseek_chat.py - 通过 CDP 复用浏览器登录态调用 DeepSeek Chat API
 
-纯 Python 标准库，依赖同目录的 browser_cdp.py 与官方 PoW 求解模块
-sha3_wasm_bg.wasm（DeepSeek 官方 DeepSeekHashV1，浏览器里跑，零额外安装）。
+纯 Python 标准库，依赖本 skill 核心实现 `../../scripts/browser_cdp.py`
+与本目录的官方 PoW 求解模块 sha3_wasm_bg.wasm（DeepSeek 官方 DeepSeekHashV1）。
 
 整条链路：
   1. CDP 取 chat.deepseek.com 的 Cookie + localStorage（Bearer token / hif 头）；
@@ -29,7 +29,9 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 import browser_cdp as bc
 
 DOMAIN = "chat.deepseek.com"

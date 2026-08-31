@@ -64,7 +64,7 @@ python3 tests/test_cdp_websocket.py   # mock CDP 端到端测试（纯标准库�
 ## 示例
 
 `examples/deepseek-chat/`：从浏览器抓包到流式 API 调用的完整走查
-（脚本在 `scripts/deepseek_chat.py`，协议细节见 `references/deepseek-protocol.md`）。
+（脚本与 PoW 资源在该示例目录内，协议细节见 `references/deepseek-protocol.md`）。
 
 ## 目录结构
 
@@ -78,7 +78,7 @@ browser-login-session/        # 元 skill 模板
 │   ├── security.md           # 安全模型
 │   ├── deepseek-protocol.md  # DeepSeek 协议参考
 │   └── skill-authoring.md    # 元 skill：新 skill 创建清单
-├── scripts/                  # 核心脚本（零第三方依赖）
-├── examples/                 # 原始输入 → 设计总结 → 用法
+├── scripts/                  # 核心实现（仅 browser_cdp.py）
+├── examples/deepseek-chat/   # 示例：DeepSeek 调用（脚本 + PoW 资源 + 文档）
 └── tests/                    # 可运行验证
 ```

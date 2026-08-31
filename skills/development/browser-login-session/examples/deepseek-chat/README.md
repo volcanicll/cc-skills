@@ -17,13 +17,22 @@
 
 ## 成品
 
-`scripts/deepseek_chat.py`：
+`examples/deepseek-chat/deepseek_chat.py`：
 
 ```bash
-cd ../../scripts
+cd skills/development/browser-login-session/examples/deepseek-chat
 python3 deepseek_chat.py --new --prompt "你好"
 python3 deepseek_chat.py --session-id <id> --parent-message-id <id> --prompt "续聊"
 ```
+
+## 本目录文件
+
+| 文件 | 用途 |
+| --- | --- |
+| `deepseek_chat.py` | 可运行示例脚本（依赖核心实现 `scripts/browser_cdp.py`） |
+| `pow_solve.mjs` / `sha3_wasm_bg.wasm` | PoW 求解所需资源（Node 内置 WebAssembly） |
+| `raw-request.md` | 原始输入：浏览器抓包骨架 |
+| `README.md` | 本文件：设计总结 |
 
 ## 复盘要点
 

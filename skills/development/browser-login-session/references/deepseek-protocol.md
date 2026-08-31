@@ -17,6 +17,7 @@ DeepSeek 网页版（`chat.deepseek.com`）的 `/api/v0/chat/completion` 是私�
 ## 链路
 
 ```bash
+cd skills/development/browser-login-session/examples/deepseek-chat
 python3 deepseek_chat.py --new --prompt "你好"
 ```
 

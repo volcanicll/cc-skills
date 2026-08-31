@@ -11,7 +11,7 @@
 | `manifest.json` | 元数据：名称、版本、依赖、结构说明 | 推荐 |
 | `references/` | 详细指引：架构、协议、安全等 | 有实现细节时 |
 | `scripts/` | 可执行核心代码 | 有逻辑时 |
-| `examples/` | 原始输入 → 设计总结 → 用法示例 | 有端到端用例时 |
+| `examples/` | 原始输入 → 设计总结 → 可运行的示例脚本与资源（自包含） | 有端到端用例时 |
 | `tests/` | 可运行的验证脚本（纯标准库优先） | 有可测逻辑时 |
 
 ## SKILL.md 写作原则
@@ -27,7 +27,8 @@
 3. 先写 `description`（触发路由靠它），再补正文；
 4. 核心逻辑放 `scripts/`，优先纯标准库 / 系统自带工具，避免第三方依赖；
 5. 细节文档放 `references/`，每个文件只讲一件事；
-6. 端到端用例放 `examples/<name>/`：`raw-input.*`（原始输入）+ `README.md`（设计总结与用法）；
+6. 端到端用例放 `examples/<name>/`：`raw-input.*`（原始输入）+ `README.md`（设计总结）
+   + 可运行的示例脚本与资源（自包含）；
 7. 可测逻辑放 `tests/`，脚本可直接运行（`python3 tests/test_xxx.py`）；
 8. 敏感信息扫描：提交前 `rg` 检查无密钥 / Token；
 9. 按仓库规范同步 marketplace 并更新根 README；
