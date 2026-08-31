@@ -93,9 +93,10 @@ python3 scripts/sync_marketplace.py --verbose
    - 在对应分类的技能表格中新增一行（中文描述）
    - 更新「Repository Structure」结构图
    - 如需要，补充「Usage」触发示例
-6. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
-7. 运行 skill 自带测试（如有 `tests/`）并确认无密钥残留
-8. 遵循 `AGENTS.md` 的 Git 提交规范提交：
+6. 同步 `docs/index.html` 落地页：技能总数、分类计数、技能列表与描述
+7. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
+8. 运行 skill 自带测试（如有 `tests/`）并确认无密钥残留
+9. 遵循 `AGENTS.md` 的 Git 提交规范提交：
    ```
    feat(skills): add xxx skill
    ```
@@ -109,5 +110,6 @@ python3 scripts/sync_marketplace.py --verbose
 - [ ] 自带测试通过、无密钥残留
 - [ ] `python3 scripts/sync_marketplace.py --check` 通过
 - [ ] README 技能表格与结构图已更新
+- [ ] `docs/index.html` 落地页已同步（技能总数/分类计数/描述）
 - [ ] 提交信息符合 `<type>(<scope>): <description>` 格式
 - [ ] 无调试代码与无关文件

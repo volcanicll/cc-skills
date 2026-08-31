@@ -107,3 +107,12 @@ skill-name/
 
 创建新 skill 时按 `browser-login-session/references/skill-authoring.md` 的清单执行：
 SKILL.md 保持精简、细节下沉 `references/`、提交前跑测试与同步校验。
+
+### 推送前检查（强制）
+
+每次推送（push）前，必须把以下内容纳入本次提交，未同步不得推送：
+
+1. `README.md`：技能表格、Repository Structure 结构图、Usage 触发示例；
+2. `docs/index.html` 落地页：技能总数、分类计数、技能列表与描述；
+3. 相关文档：`CONTRIBUTING.md` / `AGENTS.md` 在结构或规范变化时同步；
+4. 运行 `python3 scripts/sync_marketplace.py --check` 确认 marketplace 一致。
