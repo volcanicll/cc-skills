@@ -30,7 +30,8 @@
       "skills": [
         "./skills/development/browser-login-session",
         "./skills/development/changelog-writer",
-        "./skills/development/git-history-cleaner"
+        "./skills/development/git-history-cleaner",
+        "./skills/development/swagger-docs"
       ]
     },
     {

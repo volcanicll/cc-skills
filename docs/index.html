@@ -231,6 +231,7 @@
     .tag-2 { top: 22%; right: 6%; transform: rotate(3deg); }
     .tag-3 { bottom: 14%; left: 14%; transform: rotate(2deg); }
     .tag-4 { bottom: 22%; right: 10%; transform: rotate(-3deg); }
+    .tag-5 { top: 55%; right: 14%; transform: rotate(1deg); }
 
     /* ── Section base ────────────────── */
     section {
@@ -450,7 +451,7 @@
     <div class="reveal visible">
       <div class="hero-eyebrow">Claude Agent Skills</div>
       <h1>一套手作的 Claude 技能集，让工作流更顺手。</h1>
-      <p>从照片转手绘头像到浏览器登录态复用，从考试练习到技能包管理。九个模块化技能，装上就能用。</p>
+      <p>从照片转手绘头像到浏览器登录态复用，从接口文档离线查询到技能包管理。十个模块化技能，装上就能用。</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#install">开始安装</a>
         <a class="btn btn-secondary" href="#skills">浏览技能</a>
@@ -459,20 +460,21 @@
     <div class="hero-visual reveal visible" aria-hidden="true">
       <div class="hero-visual-inner">
         <div class="hero-visual-label">共收录</div>
-        <div class="hero-visual-count">6</div>
+        <div class="hero-visual-count">10</div>
         <div class="hero-visual-sub">个 Agent Skills</div>
       </div>
       <span class="hero-visual-tag tag-1">手绘头像</span>
       <span class="hero-visual-tag tag-2">Git 清理</span>
       <span class="hero-visual-tag tag-3">考试助手</span>
       <span class="hero-visual-tag tag-4">编辑海报</span>
+      <span class="hero-visual-tag tag-5">接口查询</span>
     </div>
   </div>
 
   <section id="skills">
     <div class="reveal">
       <div class="section-label">技能分类</div>
-      <h2 class="section-title">四个方向，九种能力</h2>
+      <h2 class="section-title">四个方向，十种能力</h2>
       <p class="section-sub">每个技能是一个独立文件夹：SKILL.md 指令 + 可选脚本、文档与测试。Claude 根据上下文自动激活对应技能；其中 browser-login-session 是新建 skill 的结构模板（元 skill）。</p>
     </div>
 
@@ -496,7 +498,7 @@
       </div>
 
       <div class="cat-row reveal">
-        <div class="cat-name">开发工具 <span class="cat-count">3</span></div>
+        <div class="cat-name">开发工具 <span class="cat-count">4</span></div>
         <div class="skill-list">
           <div class="skill-item">
             <span class="skill-name">browser-login-session <em style="color:var(--terracotta);font-style:normal;font-size:12px;">（元 skill 模板）</em></span>
@@ -509,6 +511,10 @@
           <div class="skill-item">
             <span class="skill-name">changelog-writer</span>
             <span class="skill-desc">将 Git 提交记录整理为面向用户的 Release Notes 与 CHANGELOG 条目</span>
+          </div>
+          <div class="skill-item">
+            <span class="skill-name">swagger-docs</span>
+            <span class="skill-desc">将 Swagger/OpenAPI 接口文档同步为本地离线缓存，支持按路径/关键字/标签/权限编码查询接口与 schema</span>
           </div>
         </div>
       </div>
@@ -555,7 +561,7 @@
       <div class="install-card reveal">
         <h3>直接安装</h3>
         <pre><code>/plugin install creative-tools@volcanic-skills</code></pre>
-        <p>也可以一次安装全部四个分类插件，或手动 clone 仓库复制技能文件夹。</p>
+        <p>也可以一次安装全部四个分类插件（开发工具已包含 swagger-docs），或手动 clone 仓库复制技能文件夹。</p>
       </div>
     </div>
   </section>
