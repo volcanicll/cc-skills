@@ -1,0 +1,26 @@
+{
+  "name": "browser-login-session",
+  "version": "2.0.0",
+  "description": "Reuse browser logged-in session via CDP; canonical skill template (meta-skill) for new skills.",
+  "category": "development",
+  "requires": {
+    "python": ">= 3.8",
+    "browser": ["chrome", "edge"],
+    "node": "optional (DeepSeek example PoW solver)"
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json",
+    "references/",
+    "scripts/",
+    "examples/",
+    "tests/"
+  ],
+  "docs": {
+    "architecture": "references/architecture.md",
+    "endpoint-matrix": "references/endpoint-matrix.md",
+    "security": "references/security.md",
+    "deepseek-protocol": "references/deepseek-protocol.md",
+    "skill-authoring": "references/skill-authoring.md"
+  }
+}

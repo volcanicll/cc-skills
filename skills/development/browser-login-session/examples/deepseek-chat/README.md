@@ -1,0 +1,35 @@
+# 示例：DeepSeek Chat（原始输入 → 成品）
+
+## 目标
+
+用浏览器已登录身份调用 `chat.deepseek.com` 的私有流式接口，验证
+`browser-login-session` 的完整模式：**CDP 取登录态 → 求解 PoW → 流式调用 → 重组响应**。
+
+## 设计：请求字段的来源
+
+| 请求字段 | 来源 |
+| --- | --- |
+| Cookie（`ds_session_id` 等） | CDP `Network.getCookies` |
+| `authorization: Bearer` | localStorage `userToken` |
+| `x-hif-dliq` / `x-hif-leim` | localStorage 缓存值 |
+| `x-ds-pow-response` | 每次现算：Node 跑官方 WASM（`pow_solve.mjs`） |
+| UA / sec-ch-ua | CDP `Runtime.evaluate` |
+
+## 成品
+
+`scripts/deepseek_chat.py`：
+
+```bash
+cd ../../scripts
+python3 deepseek_chat.py --new --prompt "你好"
+python3 deepseek_chat.py --session-id <id> --parent-message-id <id> --prompt "续聊"
+```
+
+## 复盘要点
+
+- PoW 一次性：复用旧值返回 `INVALID_POW_RESPONSE`；
+- 流协议是 CRDT patch（`{"p":...,"o":"APPEND","v":...}` + 裸 `{"v":...}` 文本块），
+  不是老的 `type:delta`，必须按 fragment（THINK/RESPONSE）重组；
+- 续聊必须传 `parent_message_id`（线程最后一条消息 id），否则模型丢失上下文。
+
+协议细节见 `../../references/deepseek-protocol.md`。
