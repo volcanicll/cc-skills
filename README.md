@@ -28,7 +28,7 @@ The marketplace provides the following plugins (one per skill category):
 | Plugin | Category | Skills |
 |--------|----------|--------|
 | `creative-tools` | 创意设计 | naive-doodle-avatar, image-to-hand-drawn, photo-to-editorial-poster |
-| `development-tools` | 开发工具 | git-history-cleaner |
+| `development-tools` | 开发工具 | browser-login-session, changelog-writer, git-history-cleaner |
 | `learning-tools` | 学习教育 | eli5, exam-learning-assistant |
 | `meta-tools` | 元工具 | skill-manager |
 
@@ -64,7 +64,7 @@ Copy individual skill folders to your Claude skills directory.
 
 | Skill | Description |
 |-------|-------------|
-| **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖 |
+| **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖。同时是仓库的元 skill 模板，新建 skill 参考其结构与创建清单 |
 | **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
 | **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 |
 
@@ -101,7 +101,7 @@ cc-skills/
 │   │   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
 │   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
 │   ├── development/           # Development tools
-│   │   ├── browser-login-session/ # Reuse browser logged-in session via CDP
+│   │   ├── browser-login-session/ # Reuse browser login via CDP (meta-skill template)
 │   │   ├── changelog-writer/      # Commit history to release notes
 │   │   └── git-history-cleaner/   # Git repository history cleaner
 │   ├── learning/              # Learning & education
@@ -125,14 +125,16 @@ cc-skills/
 `examples/` + `tests/`）与创建清单见该 skill 的
 `references/skill-authoring.md`。
 
-Each skill follows a simple structure:
+Each skill follows the meta-skill template:
 
 ```
 skill-name/
-├── SKILL.md                   # Required: Metadata and instructions
-├── scripts/                   # Optional: Executable scripts
-├── references/                # Optional: Documentation and references
-└── assets/                    # Optional: Templates and resources
+├── SKILL.md                   # Entry: capabilities, quick start, workflow, red lines
+├── manifest.json              # Metadata: name / version / deps / structure
+├── references/                # Core-topic docs (architecture, security, ...)
+├── scripts/                   # Core implementation (stdlib-first)
+├── examples/                  # Raw input → design summary → runnable example
+└── tests/                     # Runnable verification
 ```
 
 ### 规范与自动化
@@ -162,6 +164,8 @@ Instructions for Claude to follow when this skill is active.
 Once installed, skills activate automatically based on context:
 
 **Examples:**
+- "复用浏览器登录态，取 github.com 的 Cookie 调 API"
+- "用当前浏览器登录身份调用 DeepSeek 接口"
 - "根据这个月的 commit 记录生成工时报表"
 - "用 skill-manager 查看可用的 skills"
 - "帮我安装 baoyu-comic skill"
