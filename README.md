@@ -120,6 +120,11 @@ cc-skills/
 
 ## Creating Your Own Skills
 
+新 skill 请以 `skills/development/browser-login-session/` 为**元 skill 模板**：
+标准目录结构（`SKILL.md` + `manifest.json` + `references/` + `scripts/` +
+`examples/` + `tests/`）与创建清单见该 skill 的
+`references/skill-authoring.md`。
+
 Each skill follows a simple structure:
 
 ```

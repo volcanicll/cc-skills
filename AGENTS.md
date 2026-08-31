@@ -90,3 +90,20 @@ refactor(skill-manager): refactor package management logic
 3. 更新 `README.md` 中的技能表格与仓库结构图
 4. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
 5. 按本文件的 Git 提交规范提交
+
+### 元 skill 模板
+
+新 skill 以 `skills/development/browser-login-session/` 为结构模板（元 skill）：
+
+```
+skill-name/
+├── SKILL.md           # 精简入口：能力边界、快速开始、工作流、红线
+├── manifest.json      # 元数据（名称/版本/依赖/结构）
+├── references/        # 详细指引（架构、协议、安全等，按需增减）
+├── scripts/           # 核心可执行脚本（优先零第三方依赖）
+├── examples/          # 原始输入 → 设计总结 → 用法示例
+└── tests/             # 可运行的验证脚本
+```
+
+创建新 skill 时按 `browser-login-session/references/skill-authoring.md` 的清单执行：
+SKILL.md 保持精简、细节下沉 `references/`、提交前跑测试与同步校验。

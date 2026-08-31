@@ -29,6 +29,20 @@ cc-skills/
 - `<category>`：`creative`、`development`、`learning`、`meta` 之一，与 `skills/` 一级目录对应
 - `<skill-name>`：英文短横线命名（kebab-case）
 
+新 skill 以 `skills/development/browser-login-session/` 为元 skill 模板，推荐结构：
+
+```
+skill-name/
+├── SKILL.md           # 精简入口：能力边界、快速开始、工作流、红线
+├── manifest.json      # 元数据（名称/版本/依赖/结构）
+├── references/        # 详细指引（架构、协议、安全等，按需增减）
+├── scripts/           # 核心可执行脚本（优先零第三方依赖）
+├── examples/          # 原始输入 → 设计总结 → 用法示例
+└── tests/             # 可运行的验证脚本
+```
+
+创建清单见 `browser-login-session/references/skill-authoring.md`。
+
 ### SKILL.md frontmatter
 
 `SKILL.md` 必须包含合法的 YAML frontmatter：
@@ -71,14 +85,17 @@ python3 scripts/sync_marketplace.py --verbose
 
 ## 新增 skill 流程
 
-1. 创建 `skills/<category>/<skill-name>/SKILL.md`，frontmatter 含合法的 `name` 与 `description`
-2. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
-3. 更新 `README.md`：
+1. 以元 skill `skills/development/browser-login-session/` 为模板复制骨架
+2. 创建 `skills/<category>/<skill-name>/SKILL.md`，frontmatter 含合法的 `name` 与 `description`
+3. 按 `references/skill-authoring.md` 清单补充 manifest / references / scripts / examples / tests
+4. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
+5. 更新 `README.md`：
    - 在对应分类的技能表格中新增一行（中文描述）
    - 更新「Repository Structure」结构图
    - 如需要，补充「Usage」触发示例
-4. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
-5. 遵循 `AGENTS.md` 的 Git 提交规范提交：
+6. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过
+7. 运行 skill 自带测试（如有 `tests/`）并确认无密钥残留
+8. 遵循 `AGENTS.md` 的 Git 提交规范提交：
    ```
    feat(skills): add xxx skill
    ```
@@ -88,6 +105,8 @@ python3 scripts/sync_marketplace.py --verbose
 提交前确认：
 
 - [ ] SKILL.md frontmatter 合法（`name` 与目录名一致、`description` 非空）
+- [ ] 结构遵循元 skill 模板（SKILL.md + manifest.json + references/ + scripts/ + examples/ + tests/ 按需）
+- [ ] 自带测试通过、无密钥残留
 - [ ] `python3 scripts/sync_marketplace.py --check` 通过
 - [ ] README 技能表格与结构图已更新
 - [ ] 提交信息符合 `<type>(<scope>): <description>` 格式
