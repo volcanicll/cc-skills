@@ -36,11 +36,13 @@ python3 scripts/rdc_workflow --config config.yaml stats \
 输出每个仓库的业务提交（自动过滤 merge/test/dist/chore 等噪音）。AI 按模块/功能人工分组为工作项。
 
 ### 2. 生成工作量 Excel
-`work_items.json` 格式：
+`work_items.json` 格式（**单工作项 `hours` 必须为 1~24 小时**，超出会校验失败）：
 ```json
 {"work_items": [{"title": "前端开发-资金归集-登录：…", "hours": 8,
                  "start": "2026-08-01", "end": "2026-08-05", "description": "…"}]}
 ```
+> 工时规则：AI 分组时单工作项最小 1 小时、最大 24 小时；月度总工时
+> 由多个工作项累加，单模块工作量较大时应拆分多个工作项。
 ```bash
 python3 scripts/rdc_workflow --config config.yaml build-excel -i work_items.json -o 营销域8月-示例.xlsx
 ```

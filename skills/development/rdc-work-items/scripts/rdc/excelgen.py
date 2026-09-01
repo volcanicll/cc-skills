@@ -7,11 +7,35 @@ import json
 
 from . import xlsx
 
+# 单工作项工时范围（小时）：最小 1，最大不超过 24
+MIN_HOURS = 1
+MAX_HOURS = 24
+
+
+def validate_items(items):
+    """校验每个工作项工时在 [MIN_HOURS, MAX_HOURS] 区间，非法时抛出 ValueError。"""
+    errors = []
+    for it in items:
+        title = it.get("title", "")
+        raw = it.get("hours")
+        try:
+            hours = float(raw)
+        except (TypeError, ValueError):
+            errors.append(f"「{title}」hours 缺失或非数字: {raw!r}")
+            continue
+        if not (MIN_HOURS <= hours <= MAX_HOURS):
+            errors.append(f"「{title}」hours={hours:g} 超出范围 [{MIN_HOURS}, {MAX_HOURS}]")
+    if errors:
+        raise ValueError("工作项工时校验失败（单工作项最小 1 小时、最大 24 小时）：\n"
+                         + "\n".join(errors))
+    return items
+
 
 def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
     """items: [{"title","hours","start","end","description"}]
     生成 14 列「导出结果」格式工作簿。
     """
+    validate_items(items)
     status = status or cfg.get("initial_status", "新建")
     updated_at = updated_at or ""
     created_at = created_at or ""
