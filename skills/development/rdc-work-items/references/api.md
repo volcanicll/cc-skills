@@ -44,10 +44,13 @@ succeededItemsSize / failedItemsSize / fileUrl(错误报告)
 
 ```
 POST {base_url}/wim/workItem/workspaces/{workspace}/export/excel?flap=false
-Content-Type: application/json
-body: filterItems(指派给/状态/计划开始时间等) + selectItems + ...
+Content-Type: application/json（必须，net.request_json 自动设置）
+body: filterItems(指派给/状态/创建时间等) + selectItems(8 列) + ...
 ```
 异步返回 `bo.taskInfo.fileUrl`，再 GET 下载。
+body 已按 2026-09 页面实际成功报文对齐：`workItemTypeKeys=[]`、
+`crossWorkspaceKeyMapping.filter=[]`、按 `System_ChangedDate` 倒序、
+日期过滤用 `System_CreatedDate`（between）。
 
 ### 4. 状态流转（updateWorkItems，PUT）
 
@@ -84,3 +87,4 @@ bo.succeededItems[] 更新成功；bo.failedItems[] 失败项
 | 更新返回 failedItems | 检查编号是否正确、状态是否合法、是否跳级 |
 | 导入 failedItemsSize>0 | 下载 `fileUrl` 错误报告查看原因 |
 | 校验提示列不支持 | 平台不支持导入该列，`prepare` 已默认移除 |
+| 导出返回 0001 服务器错误 | 请求体缺 `Content-Type: application/json`（已修复自动设置）；或核对 body 与页面报文一致 |

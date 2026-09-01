@@ -33,11 +33,18 @@ def _json_loads(raw):
 
 
 def request_json(method, url, headers=None, payload=None, timeout=60):
-    """发送 JSON 请求（method 为 GET/POST/PUT...），返回解析后的 JSON。"""
+    """发送 JSON 请求（method 为 GET/POST/PUT...），返回解析后的 JSON。
+
+    与 requests.json= 对齐：payload 非空时自动设置 Content-Type: application/json
+    （调用方未显式指定时），避免平台按其它类型解析请求体。
+    """
+    headers = dict(headers or {})
+    if payload is not None and not any(k.lower() == "content-type" for k in headers):
+        headers["Content-Type"] = "application/json"
     data = None
     if payload is not None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
     with _open(req, timeout) as resp:
         return _json_loads(resp.read())
 

@@ -54,6 +54,8 @@ def test_request_json_post():
     assert seen["headers"]["X-auth-value"] == "abc"
     assert json.loads(seen["body"].decode()) == {"a": 1, "b": "中文"}
     assert calls[0].full_url == "https://api/x"
+    # 自动设置 Content-Type（对齐 requests.json=）
+    assert seen["headers"]["Content-type"] == "application/json"
 
 
 def test_multipart_body():

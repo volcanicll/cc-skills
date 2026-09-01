@@ -72,10 +72,9 @@ def import_ids(bo):
     return ids
 
 
-def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
-                 state="@all", page_size=200, team_id=None, select_items=None):
-    """导出工作项 Excel（异步任务，返回 fileUrl 后下载）。"""
-    team_id = team_id or cfg.get("team_id") or ""
+def export_body(cfg, since=None, until=None, assignee=None, state="@all",
+               page_size=200, select_items=None):
+    """构造导出请求体（与研发云页面实际报文一致，2026-09 实测）。"""
     assignee = assignee or cfg.get("assignee_emp_no")
     assignee_name = cfg.get("assignee_name", "")
     filters = [
@@ -85,7 +84,7 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
             "filterId": "System_AppointedTo", "operator": "in",
             "filterValue": assignee or "@all", "hidden": False,
         },
-        {"data": "[]", "filterId": "System_State", "operator": "in",
+        {"data": "", "filterId": "System_State", "operator": "in",
          "filterValue": state, "hidden": False},
         {"data": "", "filterId": "System_Tag", "operator": "in",
          "filterValue": "@all", "hidden": False},
@@ -94,52 +93,47 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
     ]
     if since and until:
         filters.append({
-            "data": f'["{since}","{until}"]', "filterId": "DXYJY_PlanStartDate",
+            "data": f'["{since}","{until}"]', "filterId": "System_CreatedDate",
             "operator": "between", "filterValue": f"{since},{until}", "hidden": False,
         })
-    else:
-        filters.append({"data": "", "filterId": "DXYJY_PlanStartDate",
-                        "operator": "between", "filterValue": "", "hidden": False})
-    filters.append({"data": "", "filterId": "DXYJY_ActualFinishDate",
-                    "operator": "between", "filterValue": "", "hidden": False})
 
     select_items = select_items or [
+        {"key": "System_WorkItemType", "width": ""},
         {"key": "System_Id", "width": ""},
         {"key": "System_Title", "width": ""},
-        {"key": "System_WorkItemType", "width": ""},
         {"key": "System_State", "width": ""},
         {"key": "System_AppointedTo", "width": ""},
         {"key": "System_ChangedDate", "width": ""},
-        {"key": "DXYJY_PlanStartDate", "width": ""},
-        {"key": "DXYJY_ActualFinishDate", "width": ""},
         {"key": "OriginalEstimate", "width": ""},
-        {"key": "System_CreatedBy", "width": ""},
-        {"key": "System_CreatedDate", "width": ""},
-        {"key": "Team", "width": ""},
-        {"key": "DXYJY_Detail_html", "width": ""},
-        {"key": "srdcloud_PMC_renwuleixing", "width": ""},
+        {"key": "DXYJY_ActualFinishDate", "width": ""},
     ]
-    body = {
+    return {
         "appCode": "WicDefault",
         "conditions": [f"System_WorkspaceKey='{cfg['workspace']}'"],
         "createFrom": "", "crossWorkspace": False, "crossWorkspaceAccessList": [],
-        "crossWorkspaceKeyMapping": {"filter": ["任务"]}, "disable": False,
+        "crossWorkspaceKeyMapping": {"filter": []}, "disable": False,
         "filterItems": filters, "flowManager": True,
         "id": "6385a3ef0b13ba5558b937da", "inputFilterItems": [],
         "lastUpdateBy": "", "queryDraftFilter": "noDraft", "queryType": "filter",
         "resultType": "flat", "scrollId": "", "selectItems": select_items,
-        "sortItems": [{"isAscending": True, "key": "System_Title"}],
-        "teamId": team_id, "tenantKey": cfg.get("tenant_id", "20001"),
+        "sortItems": [{"isAscending": False, "key": "System_ChangedDate"}],
+        "teamId": cfg.get("team_id", ""), "tenantKey": cfg.get("tenant_id", "20001"),
         "userId": "systemAdmin", "viewBackupId": "",
         "viewName": f"{cfg['workspace']}AllWorkItems",
         "viewNameEn": f"{cfg['workspace']}AllWorkItems",
         "viewNameZh": f"{cfg['workspace']}AllWorkItems",
-        "viewType": "public",
-        "workItemTypeKeys": [f"Task:{cfg['workspace']}:任务"],
+        "viewType": "public", "workItemTypeKeys": [],
         "workspaceKey": cfg["workspace"], "pageNo": 1, "pageSize": page_size,
         "appendParams": {}, "queryCondition": {"sourceClauses": []},
         "version": "2.0", "queryCategory": "latest",
     }
+
+
+def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
+                 state="@all", page_size=200, team_id=None, select_items=None):
+    """导出工作项 Excel（异步任务，返回 fileUrl 后下载）。"""
+    body = export_body(cfg, since=since, until=until, assignee=assignee,
+                       state=state, page_size=page_size, select_items=select_items)
     url = f"{cfg['base_url']}/wim/workItem/workspaces/{cfg['workspace']}/export/excel?flap=false"
     data = _check_code(net.request_json("POST", url, _headers(cfg, auth), payload=body, timeout=120))
     bo = data.get("bo", {})
@@ -157,7 +151,6 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
     with open(out_path, "wb") as f:
         f.write(content)
     return {"task": task, "saved": out_path, "bytes": len(content)}
-
 
 def download(url, auth=None, headers=None):
     """下载平台文件，返回内容。"""
