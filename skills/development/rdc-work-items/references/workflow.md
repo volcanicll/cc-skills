@@ -8,12 +8,14 @@
 
 ## 准备（一次性）
 
-1. 复制 `config.example.yaml` → `config.yaml`，按环境修改：
-   - `workspace/project_id/team_id/tenant_id/api_key`：平台参数
-   - `assignee_emp_no/assignee_name/team_name`：指派人信息
-   - `status_flow`：平台实际工作流状态（默认 新建→处理中→已完成→已关闭）
-   - `wic_base_url/wic_version/work_item_type_key`：状态流转接口参数（一般用默认）
-   - `repos`：本机 git 仓库列表；`git_author`：要统计的作者
+1. 首次配置（交互向导）：`python3 scripts/rdc_workflow setup-config`
+   - 输入 `workspace/project_id/team_id/tenant_id/api_key`（平台参数）、
+     `assignee_emp_no/assignee_name/team_name`（指派人）、`git_author`（git 作者）
+   - 写入全局配置 `~/.config/rdc-work-items.yaml`（Windows `%APPDATA%\rdc-work-items.yaml`），
+     之后所有命令自动加载，无需 `--config`
+   - 非交互方式：`setup-config --no-input --workspace … --api-key … --repos …`
+   - 可选：复制 `config.example.yaml` → 本地 `config.yaml` 覆盖（优先级高于全局）
+   - `status_flow` / `wic_base_url` 等默认即可；如需调整见 `config.example.yaml` 注释
 2. 启动 Chrome（保留登录态）并打开研发云工作项页：
    - macOS：`/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222`
    - Windows：`start chrome --remote-debugging-port=9222`（或对 chrome.exe 快捷方式加该参数）

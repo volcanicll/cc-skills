@@ -1,15 +1,41 @@
 # -*- coding: utf-8 -*-
-"""配置加载：所有环境相关变量集中于此，可通过 --config config.yaml 自定义。
+"""配置加载：所有环境相关变量集中于此，可通过 --config config.yaml 或全局配置自定义。
 
-纯标准库：YAML 用内置 yamlio 解析，JSON 直接 json.load。
+纯标准库：YAML 用内置 yamlio 解析/序列化，JSON 直接 json.load。
+支持多平台全局配置目录（macOS/Linux 用 ~/.config，Windows 用 %APPDATA%）。
 """
 import json
 import os
 
 from . import yamlio
 
+APP_NAME = "rdc-work-items"
+
+
+def user_config_dir(app=APP_NAME):
+    """用户配置目录（多平台）：
+    - Windows: %APPDATA%\\rdc-work-items
+    - macOS/Linux: ~/.config/rdc-work-items
+    """
+    if os.name == "nt":
+        base = os.environ.get("APPDATA") or os.path.expanduser(r"~\AppData\Roaming")
+        return os.path.join(base, app)
+    return os.path.join(os.path.expanduser("~"), ".config", app)
+
+
+def global_config_path():
+    """全局配置文件（多平台）：
+    - Windows: %APPDATA%\\rdc-work-items.yaml
+    - macOS/Linux: ~/.config/rdc-work-items.yaml
+    """
+    if os.name == "nt":
+        base = os.environ.get("APPDATA") or os.path.expanduser(r"~\AppData\Roaming")
+        return os.path.join(base, APP_NAME + ".yaml")
+    return os.path.expanduser("~/.config/rdc-work-items.yaml")
+
+
 DEFAULTS = {
-    "auth_file": "auth.json",            # 鉴权数据保存/读取位置
+    "auth_file": os.path.join(user_config_dir(), "auth.json"),  # 鉴权数据（用户配置目录，勿入库）
     # ---- 研发云平台 ----
     "base_url": "https://www.srdcloud.cn/zte-rdcloud-rdc-wimbackend",
     "workspace": "YOUR_WORKSPACE",          # 工作区（接口路径/团队关联）
@@ -47,7 +73,7 @@ DEFAULTS = {
 }
 
 CONFIG_FILES = ["rdc-config.yaml", "rdc-config.yml", "rdc-config.json",
-                os.path.expanduser("~/.config/rdc-work-items.yaml")]
+                global_config_path()]
 
 
 def load_config(path=None):
@@ -69,3 +95,14 @@ def load_config(path=None):
         if isinstance(cfg.get(k), str):
             cfg[k] = os.path.expanduser(cfg[k])
     return cfg
+
+
+def write_global_config(data, path=None):
+    """把配置写入全局配置文件（多平台路径），返回写入路径。"""
+    path = path or global_config_path()
+    d = os.path.dirname(os.path.abspath(path))
+    if d:
+        os.makedirs(d, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(yamlio.dump(data))
+    return path

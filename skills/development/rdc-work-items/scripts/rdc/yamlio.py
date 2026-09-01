@@ -40,6 +40,10 @@ def _parse_value(text):
         return text[1:-1]
     if text in ("null", "Null", "NULL", "~"):
         return None
+    if text == "[]":
+        return []
+    if text == "{}":
+        return {}
     if text in ("true", "True", "TRUE"):
         return True
     if text in ("false", "False", "FALSE"):
@@ -123,3 +127,54 @@ def load(text):
 def safe_load(text):
     """兼容 yaml.safe_load 接口。"""
     return load(text)
+
+
+# ---------------------------------------------------------------------------
+# 序列化（写入全局配置用，支持本项目配置子集）
+# ---------------------------------------------------------------------------
+
+_SCALAR_LIKE = re.compile(r"^(null|~|true|false|[-+]?\d+\.?\d*|[-+]?\d+)$", re.I)
+
+
+def _dump_scalar(value):
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    s = str(value)
+    if (s == "" or s != s.strip() or _SCALAR_LIKE.fullmatch(s.strip())
+            or any(ch in s for ch in "#:{}[],&*!|>'\"%@`")):
+        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    return s
+
+
+def dump(data, indent=2):
+    """把 dict 序列化为 YAML（与 load 支持的子集对称）。"""
+    pad = " " * indent
+    lines = []
+
+    def emit(d, level):
+        for k, v in d.items():
+            key = _dump_scalar(k)
+            prefix = pad * level
+            if isinstance(v, dict):
+                lines.append(f"{prefix}{key}:")
+                emit(v, level + 1)
+            elif isinstance(v, list):
+                if not v:
+                    lines.append(f"{prefix}{key}: []")
+                    continue
+                lines.append(f"{prefix}{key}:")
+                for item in v:
+                    if isinstance(item, dict):
+                        lines.append(f"{prefix}{pad}-")
+                        emit(item, level + 2)
+                    else:
+                        lines.append(f"{prefix}{pad}- {_dump_scalar(item)}")
+            else:
+                lines.append(f"{prefix}{key}: {_dump_scalar(v)}")
+
+    emit(data, 0)
+    return "\n".join(lines) + ("\n" if lines else "")

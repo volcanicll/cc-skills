@@ -6,7 +6,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTS = ["test_yamlio.py", "test_xlsx.py", "test_net.py", "test_ws.py",
-         "test_state_api.py", "test_cli.py"]
+         "test_state_api.py", "test_config.py", "test_cli.py"]
 
 ok = True
 for t in TESTS:

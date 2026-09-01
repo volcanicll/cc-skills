@@ -4,6 +4,7 @@
 纯标准库运行（无需 pip 安装依赖）。状态流转走 updateWorkItems/edit 接口。
 
 用法：
+  python -m rdc.cli setup-config                       # 首次配置向导（写全局配置）
   python -m rdc.cli --config rdc-config.yaml auth
   python -m rdc.cli stats --since 2026-08-01 --until 2026-08-31 -o commits.json
   python -m rdc.cli build-excel -i work_items.json -o 营销域8月-示例.xlsx
@@ -16,6 +17,7 @@
   python -m rdc.cli flow --src 营销域8月-示例.xlsx --out-dir flow  # 全流程（默认 dry-run）
 """
 import argparse
+import getpass
 import json
 import os
 import sys
@@ -37,9 +39,98 @@ def _auth(args):
     return auth.load_auth(_auth_path(args))
 
 
+# ---------- 首次配置向导 ----------
+PLACEHOLDERS = ("YOUR_WORKSPACE", "YOUR_PROJECT_ID", "YOUR_TEAM_ID", "YOUR_TENANT_ID",
+                "YOUR_API_KEY", "YOUR_EMP_NO", "YOUR_NAME", "YOUR_TEAM_NAME", "YOUR_GIT_AUTHOR")
+
+SETUP_FIELDS = [
+    ("workspace", "工作区（workspace）", False),
+    ("project_id", "项目 ID（x-project-id）", False),
+    ("team_id", "团队 ID（teamId）", False),
+    ("tenant_id", "租户 ID（x-tenant-id）", False),
+    ("api_key", "API Key（x-api-key）", True),
+    ("assignee_emp_no", "员工号（assignee_emp_no）", False),
+    ("assignee_name", "姓名（assignee_name）", False),
+    ("team_name", "团队名称（team_name）", False),
+    ("git_author", "Git 作者（git_author）", False),
+]
+
+
+def _mask(value):
+    if not value or str(value).startswith("YOUR_"):
+        return "未设置"
+    return "***" + str(value)[-4:]
+
+
+def _resolve_setup_values(args, current):
+    """交互或 flags 收集配置值，返回更新后的配置 dict。"""
+    cfg = dict(current)
+    provided = {
+        "workspace": args.workspace, "project_id": args.project_id,
+        "team_id": args.team_id, "tenant_id": args.tenant_id,
+        "api_key": args.api_key, "assignee_emp_no": args.assignee_emp_no,
+        "assignee_name": args.assignee_name, "team_name": args.team_name,
+        "git_author": args.git_author, "domain": args.domain,
+        "work_item_type": args.work_item_type, "task_type": args.task_type,
+        "chrome_debug_port": args.chrome_debug_port,
+    }
+    for k, v in provided.items():
+        if v is not None:
+            cfg[k] = v
+    if args.repos:
+        cfg["repos"] = [r.strip() for r in args.repos.split(",") if r.strip()]
+
+    if args.no_input:
+        return cfg
+
+    print("首次配置向导（回车使用当前值）：")
+    for key, label, secret in SETUP_FIELDS:
+        cur = cfg.get(key, "")
+        if secret:
+            hint = "未设置" if not str(cur).startswith("YOUR_") else _mask(cur)
+            raw = getpass.getpass(f"  {label} [{hint}]: ").strip()
+        else:
+            raw = input(f"  {label} [{cur}]: ").strip()
+        if raw:
+            cfg[key] = raw
+    return cfg
+
+
+def cmd_setup_config(args):
+    """首次配置向导：把用户提供的平台参数写入全局配置文件（多平台路径）。"""
+    cfg = config.load_config()
+    data = _resolve_setup_values(args, cfg)
+    # 可移植性：auth_file 不写入全局配置（每次按本机 user_config_dir 计算）
+    data.pop("auth_file", None)
+    # chrome_profile_dir 还原为 ~ 形式，避免固化本机绝对路径
+    home = os.path.expanduser("~")
+    cd = data.get("chrome_profile_dir", "")
+    if isinstance(cd, str) and cd.startswith(home + os.sep):
+        data["chrome_profile_dir"] = "~" + cd[len(home):]
+    path = config.global_config_path()
+    print("将写入全局配置：", path)
+    print("  workspace :", data.get("workspace"))
+    print("  team_id   :", data.get("team_id"))
+    print("  api_key   :", _mask(data.get("api_key")))
+    print("  assignee  :", data.get("assignee_name"), data.get("assignee_emp_no"))
+    print("  git_author:", data.get("git_author"))
+    if not args.yes:
+        ok = input("确认写入？[y/N] ").strip().lower()
+        if ok not in ("y", "yes"):
+            print("已取消")
+            return
+    config.write_global_config(data, path)
+    print(f"✅ 已写入全局配置 {path}")
+    print(f"   鉴权文件将保存到 {config.user_config_dir()}/auth.json")
+    print("   后续命令无需 --config 自动加载；Windows 路径为 %APPDATA%\\rdc-work-items.yaml")
+
+
 # ---------- 命令实现 ----------
 def cmd_auth(args):
     cfg = _cfg(args)
+    if any(str(cfg.get(k, "")).startswith("YOUR_") for k in
+           ("workspace", "project_id", "team_id", "api_key", "assignee_emp_no")):
+        print("⚠ 检测到配置仍为占位符，建议先运行 `rdc_workflow setup-config` 完成首次配置。")
     a = auth.fetch_auth(cfg)
     path = auth.save_auth(a, cfg.get("auth_file", "auth.json"))
     print(f"✅ 鉴权已保存到 {path}")
@@ -171,11 +262,30 @@ def cmd_flow(args):
 # ---------- 参数 ----------
 def main():
     p = argparse.ArgumentParser(prog="rdc", description="研发云工作项自动化工具（配置驱动，纯标准库）")
-    p.add_argument("--config", default=None, help="配置文件路径（yaml/json），默认自动查找 rdc-config.yaml")
+    p.add_argument("--config", default=None, help="配置文件路径（yaml/json），默认自动查找 rdc-config.yaml 或全局配置")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def add(subp, name, **kw):
         return subp.add_parser(name, **kw)
+
+    pc = add(sub, "setup-config", help="首次配置向导：写入全局配置（多平台）")
+    pc.add_argument("--workspace", default=None)
+    pc.add_argument("--project-id", default=None)
+    pc.add_argument("--team-id", default=None)
+    pc.add_argument("--tenant-id", default=None)
+    pc.add_argument("--api-key", default=None)
+    pc.add_argument("--assignee-emp-no", default=None)
+    pc.add_argument("--assignee-name", default=None)
+    pc.add_argument("--team-name", default=None)
+    pc.add_argument("--domain", default=None)
+    pc.add_argument("--work-item-type", default=None)
+    pc.add_argument("--task-type", default=None)
+    pc.add_argument("--git-author", default=None)
+    pc.add_argument("--repos", default=None, help="逗号分隔的 git 仓库路径")
+    pc.add_argument("--chrome-debug-port", type=int, default=None)
+    pc.add_argument("--no-input", action="store_true", help="非交互：仅使用 flags 提供的值")
+    pc.add_argument("--yes", action="store_true", help="跳过写入确认")
+    pc.set_defaults(func=cmd_setup_config)
 
     pa = add(sub, "auth", help="通过 CDP 提取鉴权数据")
     pa.set_defaults(func=cmd_auth)

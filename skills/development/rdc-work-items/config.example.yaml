@@ -1,5 +1,8 @@
 # ============ 研发云工作项自动化 - 可自定义变量 ============
-# 复制为 rdc-config.yaml 后按需修改；所有命令通过 --config 或自动查找 rdc-config.yaml 加载。
+# 首次使用推荐运行 `python3 scripts/rdc_workflow setup-config` 交互向导，
+# 把参数写入全局配置（macOS/Linux ~/.config/rdc-work-items.yaml，Windows %APPDATA%\rdc-work-items.yaml），
+# 之后所有命令自动加载，无需 --config。
+# 本文件可复制为 rdc-config.yaml 作为本地覆盖（优先级高于全局配置）。
 # 纯 Python 标准库运行，无需 pip 安装任何依赖。
 
 # ---- 研发云平台 ----

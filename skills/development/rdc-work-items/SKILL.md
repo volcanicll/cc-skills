@@ -20,10 +20,19 @@ metadata:
   在 `config.yaml` 的 `chrome_profile_dir` 填 Windows 用户数据目录；
   留空时脚本自动按系统探测 Chrome/Edge 的 `DevToolsActivePort` 或 HTTP 探测调试端口。
 - **git**：统计提交需要本机已克隆对应仓库，仓库路径在 `config.yaml` 的 `repos` 中配置。
+- **全局配置与鉴权（多平台）**：首次配置写入全局配置
+  `~/.config/rdc-work-items.yaml`（Windows 为 `%APPDATA%\rdc-work-items.yaml`）；
+  鉴权文件保存到 `~/.config/rdc-work-items/auth.json`（Windows 为 `%APPDATA%\rdc-work-items\auth.json`），
+  均不落入项目目录。
 
 ## 快速开始
 
-1. 准备配置：复制 `config.example.yaml` 为 `config.yaml`，修改工作区/团队/指派人/状态流/仓库列表等变量。
+1. 首次配置（交互向导，回车用默认值；也可用 `--no-input --workspace …` 等 flags 非交互）：
+   ```bash
+   python3 scripts/rdc_workflow setup-config
+   ```
+   把工作区/团队/指派人/API Key/git 作者等参数写入全局配置，后续命令自动加载（无需 `--config`）。
+   也支持本地配置：复制 `config.example.yaml` 为 `config.yaml` 并修改（优先级高于全局）。
 2. 获取鉴权（Chrome 需带 `--remote-debugging-port=9222` 启动且已登录 srdcloud.cn）：
    ```bash
    python3 scripts/rdc_workflow --config config.yaml auth
