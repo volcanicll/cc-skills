@@ -67,7 +67,7 @@ Copy individual skill folders to your Claude skills directory.
 | **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖。同时是仓库的元 skill 模板，新建 skill 参考其结构与创建清单 |
 | **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
 | **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 |
-| **rdc-work-items** | 研发云（srdcloud.cn）工作项月度工作量全流程自动化：从 git 提交统计生成工作量 Excel，通过 CDP 获取登录态鉴权后调用平台接口完成工作项导入、导出与状态流转（新建→处理中→已完成→已关闭） |
+| **rdc-work-items** | 研发云（srdcloud.cn）工作项月度工作量全流程自动化：从 git 提交统计生成工作量 Excel，通过 CDP 获取登录态鉴权后调用平台接口完成工作项导入、导出与接口状态流转（新建→处理中→已完成→已关闭），纯 Python 标准库零依赖 |
 | **swagger-docs** | 将 Swagger/OpenAPI 接口文档同步到本地离线缓存，支持按路径/关键字/标签/权限编码搜索接口、查看接口详情与 TypeScript 类型定义、查询 schema |
 
 ### Creative (创意设计)
@@ -171,7 +171,7 @@ Once installed, skills activate automatically based on context:
 - "复用浏览器登录态，取 github.com 的 Cookie 调 API"
 - "用当前浏览器登录身份调用 DeepSeek 接口"
 - "根据这个月的 commit 记录生成工时报表"
-- "统计工作量并生成工作量 Excel，导入研发云工作项"
+- "统计工作量并生成工作量 Excel，导入研发云工作项并流转状态"
 - "用 skill-manager 查看可用的 skills"
 - "查一下订单模块的接口定义（Swagger 文档）"
 - "帮我安装 baoyu-comic skill"
