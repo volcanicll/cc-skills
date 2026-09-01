@@ -113,7 +113,7 @@ def fetch_auth(cfg, ws_url=None):
         ws_url = discover_ws_url(cfg)
     cdp = CDP(ws_url)
     try:
-        targets = cdp.send("Target.getTargets").get("result", {}).get("targetInfos", [])
+        targets = cdp.send("Target.getTargets").get("targetInfos", [])
         page = next(
             (t for t in targets if t["type"] == "page" and "srdcloud.cn" in t.get("url", "")),
             None,
@@ -121,10 +121,10 @@ def fetch_auth(cfg, ws_url=None):
         if page is None:
             raise RuntimeError("未在 Chrome 中找到 srdcloud.cn 页面，请先登录研发云并打开工作项页面")
         page_url = page["url"]
-        sid = cdp.send("Target.attachToTarget", {"targetId": page["targetId"], "flatten": True})["result"]["sessionId"]
+        sid = cdp.send("Target.attachToTarget", {"targetId": page["targetId"], "flatten": True})["sessionId"]
 
         ck = cdp.send("Network.getAllCookies", {}, session_id=sid)
-        cookies = [c for c in ck.get("result", {}).get("cookies", [])
+        cookies = [c for c in ck.get("cookies", [])
                    if any(d in c.get("domain", "") for d in DOMAIN_FILTER)]
 
         expr = "JSON.stringify({local:Object.fromEntries(Object.entries(localStorage)),session:Object.fromEntries(Object.entries(sessionStorage))})"
