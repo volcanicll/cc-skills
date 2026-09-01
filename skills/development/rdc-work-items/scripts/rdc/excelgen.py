@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""从工作项 JSON 生成工作量 Excel（导出结果格式，14 列）。"""
+"""从工作项 JSON 生成工作量 Excel（导出结果格式，14 列）。
+
+纯标准库：xlsx 由内置 xlsx.py（zipfile+XML）生成，不依赖 openpyxl。
+"""
 import json
 
-import openpyxl
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from . import xlsx
 
 
 def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
@@ -17,19 +19,9 @@ def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
         "编号", "标题", "工作项类型", "状态", "指派给", "更新时间",
         "计划开始时间", "实际完成时间", "初始估计", "创建人", "创建时间",
         "团队", "详细说明", "任务类型"])
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "导出结果"
-    hfont = Font(name="宋体", size=14, bold=True)
-    hfill = PatternFill(patternType="solid", fgColor="D9D9D9")
-    thin = Side(style="thin")
-    hborder = Border(left=thin, right=thin, top=thin, bottom=thin)
-    halign = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    for j, h in enumerate(columns, start=1):
-        c = ws.cell(row=1, column=j, value=h)
-        c.font = hfont; c.fill = hfill; c.border = hborder; c.alignment = halign
 
-    for i, it in enumerate(items, start=2):
+    rows = []
+    for it in items:
         vals = {
             "编号": it.get("id", ""),
             "标题": it["title"],
@@ -46,15 +38,11 @@ def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
             "详细说明": it.get("description", ""),
             "任务类型": cfg.get("task_type", "开发"),
         }
-        for j, h in enumerate(columns, start=1):
-            c = ws.cell(row=i, column=j, value=vals.get(h, ""))
-            c.alignment = Alignment(vertical="center", wrap_text=True)
+        rows.append([vals.get(h, "") for h in columns])
+
     widths = {"A": 24, "B": 46, "C": 12, "D": 10, "E": 22, "F": 20, "G": 22,
               "H": 22, "I": 12, "J": 22, "K": 20, "L": 32, "M": 90, "N": 12}
-    for col, w in widths.items():
-        ws.column_dimensions[col].width = w
-    ws.freeze_panes = "A2"
-    wb.save(out_path)
+    xlsx.write_table(out_path, columns, rows, sheet_name="导出结果", widths=widths)
     return {"items": len(items), "status": status, "out": out_path}
 
 

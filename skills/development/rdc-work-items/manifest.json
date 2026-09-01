@@ -1,0 +1,29 @@
+{
+  "name": "rdc-work-items",
+  "version": "2.0.0",
+  "description": "研发云（srdcloud.cn）工作项月度工作量全流程自动化：git 提交统计 → 工作量 Excel → 导入平台 → 接口逐级流转状态。纯 Python 标准库，零 pip 依赖。",
+  "category": "development",
+  "requires": {
+    "python": ">= 3.9",
+    "browser": ["chrome", "edge"],
+    "git": "repos cloned locally for stats",
+    "pip": "none (stdlib only: socket/urllib/zipfile/xml/json)"
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json",
+    "config.example.yaml",
+    "references/",
+    "scripts/",
+    "tests/",
+    "examples/"
+  ],
+  "docs": {
+    "workflow": "references/workflow.md",
+    "architecture": "references/architecture.md",
+    "api": "references/api.md"
+  },
+  "tests": {
+    "run": "python3 tests/run_all.py"
+  }
+}

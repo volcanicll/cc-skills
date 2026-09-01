@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+"""状态流转接口（updateWorkItems/edit）测试：python3 tests/test_state_api.py"""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+
+from rdc import api
+
+CFG = {
+    "base_url": "https://www.srdcloud.cn/zte-rdcloud-rdc-wimbackend",
+    "workspace": "P22CQQYYF0016",
+    "team_id": "bdv_33380",
+    "tenant_id": "20001",
+    "wic_base_url": "https://www.srdcloud.cn/zte-plm-wic-api",
+    "wic_version": "V1.24.22",
+    "work_item_type_key": "Task",
+    "state_field_id": "63f96af738aa624d3b708445",
+}
+AUTH = {
+    "headers": {
+        "x-api-key": "k",
+        "x-auth-value": "v",
+        "x-emp-no": "e",
+        "x-tenant-id": "20001",
+    },
+    "cookie_header": "a=b",
+}
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def _patch_request_json(handler):
+    orig = api.net.request_json
+    calls = []
+
+    def fake(method, url, headers=None, payload=None, timeout=60):
+        calls.append((method, url, headers, payload, timeout))
+        return handler(payload)
+
+    api.net.request_json = fake
+    try:
+        yield calls
+    finally:
+        api.net.request_json = orig
+
+
+def test_update_state_body():
+    captured = {}
+
+    def handler(payload):
+        captured["payload"] = payload
+        return {"code": {"code": "0000"}, "bo": {"succeededItems": [{"id": "x"}]}}
+
+    with _patch_request_json(handler) as calls:
+        bo = api.update_work_items_state(CFG, AUTH, ["P22CQQYYF0016-6864", "P22CQQYYF0016-6865"], "已完成")
+
+    method, url, headers, payload, timeout = calls[0]
+    assert method == "PUT"
+    assert url == "https://www.srdcloud.cn/zte-plm-wic-api/api/workspaces/P22CQQYYF0016/work_items/updateWorkItems/edit"
+    assert headers["content-type"] == "application/json"
+    assert headers["x-wic-version"] == "V1.24.22"
+    assert headers["x-auth-value"] == "v"
+    assert payload["workItems"] == [
+        {"id": "P22CQQYYF0016-6864", "workItemTypeKey": "Task", "workspaceKey": "P22CQQYYF0016"},
+        {"id": "P22CQQYYF0016-6865", "workItemTypeKey": "Task", "workspaceKey": "P22CQQYYF0016"},
+    ]
+    f = payload["fields"][0]
+    assert f["key"] == "System_State"
+    assert f["name"] == "状态"
+    assert f["value"] == "已完成"
+    assert f["multiValue"] is False
+    assert f["modifyType"] == "replace"
+    assert f["type"] == "state"
+    assert f["fieldObj"]["id"] == "63f96af738aa624d3b708445"
+    assert f["fieldObj"]["workspaceKey"] == "P22CQQYYF0016"
+    assert f["fieldObj"]["key"] == "System_State"
+    assert bo["succeededItems"] == [{"id": "x"}]
+
+
+def test_update_state_empty_ids():
+    with _patch_request_json(lambda p: {"code": {"code": "0000"}}):
+        try:
+            api.update_work_items_state(CFG, AUTH, [], "已完成")
+            raise AssertionError("空 ids 应抛 RdcError")
+        except api.RdcError as e:
+            assert "没有可更新" in str(e)
+
+
+def test_update_state_platform_error():
+    def handler(payload):
+        return {"code": {"code": "E999", "msg": "工作流不存在"}}
+
+    with _patch_request_json(handler):
+        try:
+            api.update_work_items_state(CFG, AUTH, ["id1"], "已完成")
+            raise AssertionError("平台错误码应抛 RdcError")
+        except api.RdcError as e:
+            assert "工作流不存在" in str(e)
+
+
+def test_import_ids():
+    # 用户提供的 importExcel 响应报文
+    bo = {
+        "taskInfo": {
+            "failedItemsSize": 0,
+            "succeededItems": [
+                {"data": {"1": "P22CQQYYF0016-6864"}, "result": 1},
+                {"data": {"1": "P22CQQYYF0016-6865"}, "result": 1},
+            ],
+            "succeededItemsSize": 2,
+        }
+    }
+    assert api.import_ids(bo) == ["P22CQQYYF0016-6864", "P22CQQYYF0016-6865"]
+    assert api.import_ids({}) == []
+
+
+if __name__ == "__main__":
+    for name, fn in sorted(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            fn()
+            print(f"  ✅ {name}")
+    print("state api tests passed")

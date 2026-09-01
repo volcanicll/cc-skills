@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""研发云工作项接口封装：check-excel / importExcel / export excel（配置驱动）。"""
+"""研发云工作项接口封装：check-excel / importExcel / export excel / updateWorkItems（纯标准库）。"""
 import os
 
-import requests
+from . import net
 
-from . import config as _config
+MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+DEFAULT_WIC_BASE = "https://www.srdcloud.cn/zte-plm-wic-api"
 
 
 class RdcError(Exception):
@@ -19,22 +20,9 @@ def _headers(cfg, auth, extra=None):
     return h
 
 
-def _session(cfg, auth):
-    s = requests.Session()
-    s.headers.update(_headers(cfg, auth))
-    cookie_header = auth.get("cookie_header")
-    if cookie_header:
-        s.headers["Cookie"] = cookie_header
-    return s
-
-
-def _check_code(resp):
-    try:
-        data = resp.json()
-    except ValueError:
-        raise RdcError(f"非 JSON 响应：HTTP {resp.status_code} {resp.text[:200]}")
+def _check_code(data):
     code = data.get("code", {})
-    if code.get("code") != "0000":
+    if isinstance(code, dict) and code.get("code") != "0000":
         raise RdcError(f"平台错误: {code}")
     return data
 
@@ -42,28 +30,46 @@ def _check_code(resp):
 def validate(cfg, auth, file_path):
     """导入数据校验（check-excel），只读安全。返回 bo。"""
     with open(file_path, "rb") as f:
-        files = {"file": (os.path.basename(file_path), f,
-                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
-        url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/check-excel"
-        resp = _session(cfg, auth).post(url, files=files, timeout=120)
-    return _check_code(resp).get("bo", {})
+        content = f.read()
+    files = {"file": (os.path.basename(file_path), content, MIME_XLSX)}
+    url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/check-excel"
+    data = _check_code(net.post_multipart(url, _headers(cfg, auth), files=files, timeout=120))
+    return data.get("bo", {})
 
 
 def import_items(cfg, auth, file_path, team_id=None):
-    """导入工作项（importExcel）。team_id 缺省用配置。"""
+    """导入工作项（importExcel）。team_id 缺省用配置。返回 taskInfo。"""
     team_id = team_id or cfg.get("team_id") or ""
     with open(file_path, "rb") as f:
-        data = {
-            "file": (os.path.basename(file_path), f,
-                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-            "importHtmlField": (None, "true"),
-            "teamId": (None, team_id),
-            "importBlankField": (None, "true"),
-        }
-        url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/importExcel"
-        resp = _session(cfg, auth).post(url, files=data, timeout=300)
-    bo = _check_code(resp).get("bo", {})
+        content = f.read()
+    fields = {
+        "importHtmlField": "true",
+        "teamId": team_id,
+        "importBlankField": "true",
+    }
+    files = {"file": (os.path.basename(file_path), content, MIME_XLSX)}
+    url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/importExcel"
+    data = _check_code(net.post_multipart(url, _headers(cfg, auth), fields=fields, files=files, timeout=300))
+    bo = data.get("bo", {})
     return bo.get("taskInfo", bo)
+
+
+def import_ids(bo):
+    """从 importExcel 响应 bo 提取成功创建的工作项编号列表。
+
+    平台返回形如：taskInfo.succeededItems[].data = {"1": "P22CQQYYF0016-6864"}
+    """
+    task = bo.get("taskInfo") or bo
+    ids = []
+    for item in task.get("succeededItems", []):
+        data = item.get("data") or {}
+        if isinstance(data, dict):
+            for v in data.values():
+                if v:
+                    ids.append(str(v))
+        elif data:
+            ids.append(str(data))
+    return ids
 
 
 def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
@@ -135,20 +141,22 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
         "version": "2.0", "queryCategory": "latest",
     }
     url = f"{cfg['base_url']}/wim/workItem/workspaces/{cfg['workspace']}/export/excel?flap=false"
-    resp = _session(cfg, auth).post(url, json=body, timeout=120)
-    bo = _check_code(resp).get("bo", {})
+    data = _check_code(net.request_json("POST", url, _headers(cfg, auth), payload=body, timeout=120))
+    bo = data.get("bo", {})
     task = bo.get("taskInfo", {})
     file_url = task.get("fileUrl", "")
     if task.get("status") != "finish" and not file_url:
         raise RdcError(f"导出任务未完成：{task}")
     if not file_url:
         raise RdcError(f"导出未返回文件地址：{task}")
-    dl = requests.get(file_url, headers={"Cookie": auth.get("cookie_header", "")}, timeout=300)
-    dl.raise_for_status()
-    os.makedirs(os.path.dirname(os.path.abspath(out_path)) or ".", exist_ok=True)
+    content = net.get_bytes(file_url, headers={"Cookie": auth.get("cookie_header", "")}, timeout=300)
+    import os as _os
+    d = _os.path.dirname(_os.path.abspath(out_path))
+    if d:
+        _os.makedirs(d, exist_ok=True)
     with open(out_path, "wb") as f:
-        f.write(dl.content)
-    return {"task": task, "saved": out_path, "bytes": len(dl.content)}
+        f.write(content)
+    return {"task": task, "saved": out_path, "bytes": len(content)}
 
 
 def download(url, auth=None, headers=None):
@@ -156,6 +164,91 @@ def download(url, auth=None, headers=None):
     h = headers or {}
     if auth and auth.get("cookie_header"):
         h["Cookie"] = auth["cookie_header"]
-    r = requests.get(url, headers=h, timeout=300)
-    r.raise_for_status()
-    return {"content": r.content, "text": r.content.decode("utf-8", errors="replace")}
+    content = net.get_bytes(url, headers=h, timeout=300)
+    return {"content": content, "text": content.decode("utf-8", errors="replace")}
+
+
+# ---------------------------------------------------------------------------
+# 状态流转（updateWorkItems/edit 接口，不再走 Excel 导入）
+# ---------------------------------------------------------------------------
+
+def _state_field(cfg, status):
+    """构造 fields[] 中 System_State 的完整字段对象（对齐平台页面请求体）。"""
+    workspace = cfg["workspace"]
+    field_id = cfg.get("state_field_id", "63f96af738aa624d3b708445")
+    usage = {
+        "controlType": "input",
+        "customization": "system",
+        "hidden": False,
+        "hrefUrl": "",
+        "key": "System_State",
+        "label": "状态",
+        "multiValue": False,
+        "readonly": False,
+        "referencePickListName": "",
+        "remoteDataSource": "",
+        "supportedOperations": [
+            {"key": "eq", "value": "=", "wiqlOperator": "="},
+            {"key": "neq", "value": "≠", "wiqlOperator": "!="},
+            {"key": "was", "value": "was", "wiqlOperator": "was"},
+        ],
+        "workItemTypeKey": "Fault",
+    }
+    field_obj = {
+        "calFormula": "",
+        "canSortBy": True,
+        "createTime": "2020-08-06T06:05:53.285+0000",
+        "customization": "system",
+        "description": "",
+        "id": field_id,
+        "key": "System_State",
+        "name": "状态",
+        "nameEn": "System_State",
+        "nameZh": "状态",
+        "remoteDataSource": "",
+        "standardField": True,
+        "type": "state",
+        "unitName": "",
+        "usages": [usage],
+        "workspaceKey": workspace,
+        "usage": usage,
+        "value": "",
+        "minValue": "",
+        "maxValue": "",
+        "datas": None,
+        "operator": "in",
+        "options": [],
+        "hidden": False,
+    }
+    return {
+        "fieldObj": field_obj,
+        "key": "System_State",
+        "name": "状态",
+        "value": status,
+        "multiValue": False,
+        "modifyType": "replace",
+        "type": "state",
+    }
+
+
+def update_work_items_state(cfg, auth, ids, status):
+    """批量修改工作项状态（PUT updateWorkItems/edit）。ids 为工作项编号列表。"""
+    if not ids:
+        raise RdcError("没有可更新的工作项编号")
+    workspace = cfg["workspace"]
+    base = cfg.get("wic_base_url", DEFAULT_WIC_BASE)
+    url = f"{base}/api/workspaces/{workspace}/work_items/updateWorkItems/edit"
+    headers = _headers(cfg, auth, {
+        "content-type": "application/json",
+        "x-wic-version": cfg.get("wic_version", "V1.24.22"),
+    })
+    body = {
+        "workItems": [
+            {"id": str(i), "workItemTypeKey": cfg.get("work_item_type_key", "Task"),
+             "workspaceKey": workspace}
+            for i in ids
+        ],
+        "fields": [_state_field(cfg, status)],
+    }
+    data = _check_code(net.request_json("PUT", url, headers, payload=body, timeout=120))
+    return data.get("bo", {})

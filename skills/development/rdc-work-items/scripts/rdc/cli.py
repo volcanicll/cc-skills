@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """研发云工作项自动化 CLI（配置驱动，所有环境变量可在 config.yaml 自定义）
 
+纯标准库运行（无需 pip 安装依赖）。状态流转走 updateWorkItems/edit 接口。
+
 用法：
   python -m rdc.cli --config rdc-config.yaml auth
   python -m rdc.cli stats --since 2026-08-01 --until 2026-08-31 -o commits.json
@@ -9,7 +11,8 @@
   python -m rdc.cli validate 导入-新建.xlsx
   python -m rdc.cli import 导入-新建.xlsx
   python -m rdc.cli export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31
-  python -m rdc.cli set-status 导出.xlsx -o 导入-处理中.xlsx --status 处理中
+  python -m rdc.cli update-status 导出.xlsx --status 处理中        # 接口流转
+  python -m rdc.cli update-status --ids P22CQQYYF0016-6864 --status 已完成
   python -m rdc.cli flow --src 营销域8月-示例.xlsx --out-dir flow  # 全流程（默认 dry-run）
 """
 import argparse
@@ -28,6 +31,7 @@ def _cfg(args):
 
 def _auth_path(args):
     return _cfg(args).get("auth_file", "auth.json")
+
 
 def _auth(args):
     return auth.load_auth(_auth_path(args))
@@ -79,9 +83,23 @@ def cmd_prepare(args):
     print(f"   列：{r['columns']}")
 
 
-def cmd_set_status(args):
-    r = prepare.set_status(args.src, args.out, args.status)
-    print(f"✅ 已更新 {r['changed']} 条状态为 {args.status} → {r['out']}")
+def cmd_update_status(args):
+    """通过 updateWorkItems/edit 接口流转状态（不再走 Excel 导入）。"""
+    cfg = _cfg(args)
+    if args.ids:
+        ids = [i.strip() for i in args.ids.split(",") if i.strip()]
+    else:
+        if not args.file:
+            raise SystemExit("缺少工作项来源：需提供 file（读取编号列）或 --ids")
+        ids = prepare.collect_ids(args.file)
+    if not ids:
+        raise SystemExit("未获取到任何工作项编号")
+    bo = api.update_work_items_state(cfg, _auth(args), ids, args.status)
+    succeeded = bo.get("succeededItems", [])
+    failed = bo.get("failedItems", [])
+    print(f"✅ 已更新 {len(succeeded)}/{len(ids)} 条状态为「{args.status}」")
+    if failed:
+        print("⚠ 失败项：", json.dumps(failed, ensure_ascii=False)[:1000])
 
 
 def cmd_summary(args):
@@ -110,8 +128,8 @@ def cmd_export(args):
 
 
 def cmd_flow(args):
-    """全流程：prepare → validate → import(创建) → export → 状态逐级流转。
-    默认 dry-run（只校验不导入）；加 --yes 才真正执行导入。"""
+    """全流程：prepare → validate → import(创建) → updateWorkItems 接口逐级流转。
+    默认 dry-run（只校验不导入）；加 --yes 才真正执行。"""
     cfg = _cfg(args)
     os.makedirs(args.out_dir, exist_ok=True)
     flow = cfg.get("status_flow", ["新建", "处理中", "已完成", "已关闭"])
@@ -132,29 +150,27 @@ def cmd_flow(args):
         print("❌ 创建导入失败：", json.dumps(task, ensure_ascii=False))
         return
     print(f"✅ 创建成功：{task.get('succeededItemsSize')} 条")
+    ids = api.import_ids(task)
+    if not ids:
+        print("⚠ 未能从导入响应提取工作项编号，跳过状态流转")
+        return
+    print(f"   工作项编号：{', '.join(ids)}")
 
-    # 2) 导出 → 状态流转
-    exp = os.path.join(args.out_dir, "导出-当前.xlsx")
-    api.export_excel(cfg, _auth(args), exp, since=args.since, until=args.until, assignee=args.assignee)
-    print(f"✅ 已导出当前状态文件：{exp}")
-
+    # 2) 接口逐级流转（不再导出/导入 Excel）
     for st in flow[1:]:
-        imp = os.path.join(args.out_dir, f"导入-{st}.xlsx")
-        prepare.set_status(exp, imp, st)
-        bo = api.validate(cfg, _auth(args), imp)
-        print(f"[状态] {st}：{bo.get('successMsg') or bo.get('errMsg')}")
-        task = api.import_items(cfg, _auth(args), imp)
-        if task.get("failedItemsSize", 0) > 0:
-            print(f"❌ 状态 {st} 更新失败，请查看错误报告")
+        bo = api.update_work_items_state(cfg, _auth(args), ids, st)
+        ok = len(bo.get("succeededItems", []))
+        failed = bo.get("failedItems", [])
+        if failed:
+            print(f"❌ 状态 {st} 更新失败：{json.dumps(failed, ensure_ascii=False)[:500]}")
             break
-        print(f"✅ 状态 {st} 更新成功：{task.get('succeededItemsSize')} 条")
-        api.export_excel(cfg, _auth(args), exp, since=args.since, until=args.until, assignee=args.assignee)
-    print("🎉 流程完成。最终文件：", exp)
+        print(f"✅ 状态 {st} 更新成功：{ok}/{len(ids)} 条")
+    print("🎉 流程完成。工作项编号：", ", ".join(ids))
 
 
 # ---------- 参数 ----------
 def main():
-    p = argparse.ArgumentParser(prog="rdc", description="研发云工作项自动化工具（配置驱动）")
+    p = argparse.ArgumentParser(prog="rdc", description="研发云工作项自动化工具（配置驱动，纯标准库）")
     p.add_argument("--config", default=None, help="配置文件路径（yaml/json），默认自动查找 rdc-config.yaml")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -193,11 +209,11 @@ def main():
     pp.add_argument("--keep-updated-time", action="store_true")
     pp.set_defaults(func=cmd_prepare)
 
-    pss = add(sub, "set-status", help="修改文件状态列")
-    pss.add_argument("src")
-    pss.add_argument("-o", "--out", required=True)
-    pss.add_argument("--status", required=True)
-    pss.set_defaults(func=cmd_set_status)
+    pss = add(sub, "update-status", help="通过接口批量流转工作项状态")
+    pss.add_argument("file", nargs="?", default=None, help="xlsx 文件（读取编号列）")
+    pss.add_argument("--status", required=True, help="目标状态（须按 status_flow 逐级流转）")
+    pss.add_argument("--ids", default=None, help="逗号分隔的工作项编号，与 file 二选一")
+    pss.set_defaults(func=cmd_update_status)
 
     psm = add(sub, "summary", help="查看文件内工作项")
     psm.add_argument("file")
@@ -217,13 +233,13 @@ def main():
     pe.add_argument("--page-size", type=int, default=200)
     pe.set_defaults(func=cmd_export)
 
-    pf = add(sub, "flow", help="全流程（默认 dry-run，加 --yes 执行导入）")
+    pf = add(sub, "flow", help="全流程（默认 dry-run，加 --yes 执行导入与状态流转）")
     pf.add_argument("--src", required=True, help="工作量 Excel（导出结果格式）")
     pf.add_argument("--out-dir", default="flow")
     pf.add_argument("--since")
     pf.add_argument("--until")
     pf.add_argument("--assignee", default=None)
-    pf.add_argument("--yes", action="store_true", help="确认执行导入（否则仅校验）")
+    pf.add_argument("--yes", action="store_true", help="确认执行导入与状态流转（否则仅校验）")
     pf.set_defaults(func=cmd_flow)
 
     args = p.parse_args()

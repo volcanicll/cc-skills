@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """通过 CDP 从已登录的 Chrome 提取研发云鉴权数据（cookie + 自定义头）。
 
-所有环境变量（工作区/项目/团队/租户/API Key/端口等）均来自配置，可自定义。
-依赖: websocket-client, requests, pyyaml
+纯标准库：WebSocket 用内置 ws.py（RFC 6455，不发送 Origin 头），
+HTTP 探测用 urllib.request。不依赖任何 pip 包。
 """
 import json
 import os
 import time
 import urllib.parse
+import urllib.request
 
-import websocket
+from . import ws
 
 AUTH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "auth.json")
 AUTH_FILE = os.path.abspath(AUTH_FILE)
@@ -17,27 +18,18 @@ DOMAIN_FILTER = ("srdcloud.cn",)
 
 
 class CDP:
-    """极简 CDP 客户端（浏览器级 WebSocket）。"""
+    """极简 CDP 客户端（浏览器级 WebSocket，纯标准库）。"""
 
     def __init__(self, ws_url, timeout=15):
-        self.ws = websocket.create_connection(ws_url, timeout=timeout, suppress_origin=True)
-        self._id = 0
+        self._conn = ws.WebSocket(ws_url, timeout=timeout)
+        self._cdp = ws.CDP(self._conn)
 
     def send(self, method, params=None, session_id=None, timeout=30):
-        self._id += 1
-        msg = {"id": self._id, "method": method, "params": params or {}}
-        if session_id:
-            msg["sessionId"] = session_id
-        self.ws.send(json.dumps(msg))
-        self.ws.settimeout(timeout)
-        while True:
-            m = json.loads(self.ws.recv())
-            if m.get("id") == self._id:
-                return m
+        return self._cdp.call(method, params, session_id=session_id, timeout=timeout)
 
     def close(self):
         try:
-            self.ws.close()
+            self._cdp.close()
         except Exception:
             pass
 
@@ -70,8 +62,24 @@ def _active_port_candidates(cfg):
     return cands
 
 
+def _probe_http(port, timeout=2.0):
+    """HTTP 探测 /json/version，返回浏览器级 WebSocket 地址（无则 None）。"""
+    url = f"http://127.0.0.1:{port}/json/version"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        wsu = data.get("webSocketDebuggerUrl")
+        return wsu or None
+    except Exception:
+        return None
+
+
 def discover_ws_url(cfg, port=None, ws_path=None):
-    """从浏览器配置目录的 DevToolsActivePort 发现浏览器级 WebSocket 地址（跨平台）。"""
+    """发现浏览器级 WebSocket 地址（跨平台）。
+
+    优先级：显式 DevToolsActivePort → 配置目录 → 系统默认目录 →
+    显式 chrome_debug_port 的 HTTP 探测（对应 --remote-debugging-port 启动方式）。
+    """
     if port is None or ws_path is None:
         last_err = None
         for active in _active_port_candidates(cfg):
@@ -83,10 +91,17 @@ def discover_ws_url(cfg, port=None, ws_path=None):
                     break
             except OSError as e:
                 last_err = e
-        if not port:
-            raise RuntimeError(
-                f"未找到 DevToolsActivePort（最后尝试 {last_err}）。"
-                "请确认 Chrome/Edge 以 --remote-debugging-port 启动，或在 config.yaml 设置 chrome_profile_dir。")
+        if port and ws_path:
+            return f"ws://127.0.0.1:{port}{ws_path}"
+        # 兜底：HTTP 探测显式调试端口（Chrome/Edge --remote-debugging-port=9222）
+        probe_port = cfg.get("chrome_debug_port") or 9222
+        wsu = _probe_http(probe_port)
+        if wsu:
+            return wsu
+        raise RuntimeError(
+            f"未找到 DevToolsActivePort（最后尝试 {last_err}）。"
+            "请确认 Chrome/Edge 以 --remote-debugging-port 启动且已登录研发云，"
+            "或在 config.yaml 设置 chrome_profile_dir。")
     if not port:
         raise RuntimeError("DevToolsActivePort 为空，请确认 Chrome 已开启远程调试端口")
     return f"ws://127.0.0.1:{port}{ws_path}"

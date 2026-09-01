@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""配置加载：所有环境相关变量集中于此，可通过 --config config.yaml 自定义。"""
+"""配置加载：所有环境相关变量集中于此，可通过 --config config.yaml 自定义。
+
+纯标准库：YAML 用内置 yamlio 解析，JSON 直接 json.load。
+"""
+import json
 import os
 
-import yaml
+from . import yamlio
 
 DEFAULTS = {
     "auth_file": "auth.json",            # 鉴权数据保存/读取位置
@@ -23,6 +27,11 @@ DEFAULTS = {
     # ---- 状态流转（按顺序执行，不可跳级）----
     "status_flow": ["新建", "处理中", "已完成", "已关闭"],
     "initial_status": "新建",
+    # ---- 状态流转接口（updateWorkItems/edit，不再走 Excel 导入）----
+    "wic_base_url": "https://www.srdcloud.cn/zte-plm-wic-api",
+    "wic_version": "V1.24.22",           # x-wic-version 头（页面版本）
+    "work_item_type_key": "Task",        # workItems[].workItemTypeKey
+    "state_field_id": "63f96af738aa624d3b708445",  # System_State 字段元数据 id
     # ---- CDP / Chrome ----
     "chrome_debug_port": 9222,
     "chrome_profile_dir": "~/Library/Application Support/Google/Chrome",
@@ -47,7 +56,12 @@ def load_config(path=None):
     for c in candidates:
         if c and os.path.exists(c):
             with open(c, encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
+                if c.endswith(".json"):
+                    data = json.load(f) or {}
+                else:
+                    data = yamlio.safe_load(f.read()) or {}
+            if not isinstance(data, dict):
+                raise ValueError(f"配置文件 {c} 顶层必须是 mapping")
             cfg.update(data)
             break
     # 路径展开

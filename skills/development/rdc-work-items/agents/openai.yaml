@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=...
 version: 1
 name: rdc-work-items
-description: 研发云工作项导入导出与状态流转自动化
+description: 研发云工作项导入导出与状态流转自动化（纯标准库零依赖）
 interface: skill

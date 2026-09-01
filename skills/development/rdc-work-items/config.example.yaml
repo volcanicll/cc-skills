@@ -1,5 +1,6 @@
 # ============ 研发云工作项自动化 - 可自定义变量 ============
 # 复制为 rdc-config.yaml 后按需修改；所有命令通过 --config 或自动查找 rdc-config.yaml 加载。
+# 纯 Python 标准库运行，无需 pip 安装任何依赖。
 
 # ---- 研发云平台 ----
 base_url: "https://www.srdcloud.cn/zte-rdcloud-rdc-wimbackend"
@@ -25,13 +26,19 @@ status_flow:
   - 已关闭
 initial_status: "新建"
 
+# ---- 状态流转接口（updateWorkItems/edit，不再走 Excel 导入）----
+wic_base_url: "https://www.srdcloud.cn/zte-plm-wic-api"
+wic_version: "V1.24.22"           # x-wic-version 头（页面版本，一般不用改）
+work_item_type_key: "Task"        # workItems[].workItemTypeKey
+state_field_id: "63f96af738aa624d3b708445"  # System_State 字段元数据 id（一般不用改）
+
 # ---- CDP / Chrome 鉴权（跨平台）----
 # Windows 示例：
 #   chrome_profile_dir: "C:\\Users\\<用户名>\\AppData\\Local\\Google\\Chrome\\User Data"
 #   （Edge: C:\\Users\\<用户名>\\AppData\\Local\\Microsoft\\Edge\\User Data）
 # macOS 示例：
 #   chrome_profile_dir: "~/Library/Application Support/Google/Chrome"
-# 留空时脚本按操作系统自动探测 Chrome/Edge 的 DevToolsActivePort。
+# 留空时脚本自动按操作系统探测 Chrome/Edge 的 DevToolsActivePort 或调试端口。
 chrome_debug_port: 9222
 chrome_profile_dir: ""
 
