@@ -54,7 +54,9 @@ auth_wait_seconds: 120          # auth 自动启动后等待登录的最长秒�
 auth_max_age_hours: 12          # 鉴权文件超过该时长视为过期（API 命令前会提示）
 
 # ---- 下载安全 ----
-file_url_hosts: [".srdcloud.cn"]   # 平台返回下载地址（fileUrl）的主机白名单（.开头=后缀匹配，按需扩展）
+# 平台返回下载地址（fileUrl）的主机白名单（.开头=后缀匹配，按需扩展）
+file_url_hosts:
+  - ".srdcloud.cn"
 
 # ---- 工作量统计（git）----
 git_author: "YOUR_GIT_AUTHOR"              # 只统计该作者的提交

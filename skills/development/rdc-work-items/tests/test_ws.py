@@ -148,6 +148,29 @@ def test_cdp_call():
     assert result["got_pong"] is True
 
 
+def test_oversized_frame_rejected():
+    """声明超长（>64MB）的帧应在读取 payload 前被拒绝。"""
+    import struct as _struct
+
+    class FakeSock:
+        def __init__(self, data):
+            self.data = data
+            self.pos = 0
+
+        def recv(self, n):
+            chunk = self.data[self.pos:self.pos + n]
+            self.pos += len(chunk)
+            return chunk
+
+    w = wsmod.WebSocket.__new__(wsmod.WebSocket)
+    w.sock = FakeSock(bytes([0x81, 0x7F]) + _struct.pack(">Q", 10 ** 12))
+    try:
+        w._recv_frame()
+        raise AssertionError("超长帧应被拒绝")
+    except wsmod.WebSocketError as e:
+        assert "超过上限" in str(e)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

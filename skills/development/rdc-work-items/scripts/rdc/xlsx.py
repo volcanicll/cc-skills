@@ -16,6 +16,18 @@ NS_CT = "http://schemas.openxmlformats.org/package/2006/content-types"
 NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 
 _NUM_RE = re.compile(r"[-+]?(\d+\.?\d*|\.\d+)$")
+# 单个 zip 成员解压大小上限（64MB），防恶意/损坏 xlsx 拖垮内存
+MAX_MEMBER_BYTES = 64 * 1024 * 1024
+
+
+def _read_member(z, name):
+    try:
+        info = z.getinfo(name)
+    except KeyError:
+        raise ValueError(f"xlsx 缺少成员 {name}") from None
+    if info.file_size > MAX_MEMBER_BYTES:
+        raise ValueError(f"xlsx 成员 {name} 解压后过大（{info.file_size} 字节），已拒绝解析")
+    return z.read(name)
 
 
 def _q(tag):
@@ -171,7 +183,7 @@ def _read_shared_strings(z):
     shared = []
     if "xl/sharedStrings.xml" not in z.namelist():
         return shared
-    root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+    root = ET.fromstring(_read_member(z, "xl/sharedStrings.xml"))
     for si in root.iter(_q("si")):
         shared.append("".join(t.text or "" for t in si.iter(_q("t"))))
     return shared
@@ -212,7 +224,10 @@ def _cell_value(c, shared):
             return ""
         return "".join(x.text or "" for x in is_.iter(_q("t")))
     if t == "s":
-        idx = int(v.text or "0") if v is not None else 0
+        try:
+            idx = int(v.text or "0") if v is not None else 0
+        except ValueError:
+            return ""  # 损坏/异常共享字符串索引 → 按空值处理，不崩溃
         return shared[idx] if idx < len(shared) else ""
     if t == "str":
         return v.text or "" if v is not None else ""
@@ -234,7 +249,7 @@ def read_table(path):
     with zipfile.ZipFile(path) as z:
         shared = _read_shared_strings(z)
         sheet_path = _first_sheet_path(z)
-        root = ET.fromstring(z.read(sheet_path))
+        root = ET.fromstring(_read_member(z, sheet_path))
         headers, rows = None, []
         for row in root.iter(_q("row")):
             values = {}

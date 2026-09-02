@@ -105,6 +105,36 @@ def test_rich_text_shared_string():
     assert h == ["编号", "标题"], h
 
 
+def test_malformed_shared_index_no_crash():
+    """损坏的 t="s" 索引（非数字）应返回空值而非抛出 ValueError。"""
+    shared = ["编号", "标题"]
+    ss_xml = ('<?xml version="1.0"?><sst xmlns="%s" count="2" uniqueCount="2">'
+              "<si><t>编号</t></si><si><t>标题</t></si></sst>" % MAIN)
+    sheet_xml = ('<?xml version="1.0"?><worksheet xmlns="%s"><sheetData>'
+                 '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row>'
+                 '<row r="2"><c r="A2" t="s"><v>not-a-number</v></c>'
+                 '<c r="B2" t="s"><v>99</v></c></row>'
+                 "</sheetData></worksheet>" % MAIN)
+    wb_xml = ('<?xml version="1.0"?><workbook xmlns="%s" '
+              'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+              '<sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>' % MAIN)
+    rels_xml = ('<?xml version="1.0"?><Relationships '
+                'xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+                'Target="worksheets/sheet1.xml"/></Relationships>')
+    path = os.path.join(tempfile.mkdtemp(), "bad.xlsx")
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("[Content_Types].xml", '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+        z.writestr("_rels/.rels", '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>')
+        z.writestr("xl/workbook.xml", wb_xml)
+        z.writestr("xl/_rels/workbook.xml.rels", rels_xml)
+        z.writestr("xl/sharedStrings.xml", ss_xml)
+        z.writestr("xl/worksheets/sheet1.xml", sheet_xml)
+    h, r = xlsx.read_table(path)
+    assert h == ["编号", "标题"]
+    assert r[0] == ["", ""], r[0]  # 越界与损坏索引都按空值处理
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

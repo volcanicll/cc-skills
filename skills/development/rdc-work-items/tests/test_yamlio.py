@@ -64,6 +64,16 @@ def test_config_example():
     assert d["chrome_debug_port"] == 9222
 
 
+def test_flow_syntax_rejected():
+    """不支持的 flow 语法（[...]/{...}）应显式报错，而非静默按字符串解析。"""
+    for text in ('repos: ["/a", "/b"]\n', 'm: {a: 1}\n'):
+        try:
+            yamlio.load(text)
+            raise AssertionError(f"应拒绝 flow 语法: {text!r}")
+        except ValueError as e:
+            assert "flow" in str(e) or "不支持的 YAML" in str(e)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

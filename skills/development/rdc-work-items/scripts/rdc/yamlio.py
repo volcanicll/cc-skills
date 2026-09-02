@@ -58,6 +58,10 @@ def _parse_value(text):
             return float(text)
         except ValueError:
             pass
+    if text.startswith("[") or text.startswith("{"):
+        raise ValueError(
+            f"不支持的 YAML flow 语法: {text[:40]!r}。本项目配置子集仅支持块状 list/map，"
+            "复杂配置请改用 rdc-config.json")
     return text
 
 

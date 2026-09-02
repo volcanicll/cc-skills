@@ -14,6 +14,8 @@ import struct
 import urllib.parse
 
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+# 单帧长度上限（64MB），防止本地 CDP 端点异常/被污染时内存耗尽
+MAX_FRAME_BYTES = 64 * 1024 * 1024
 
 
 class WebSocketError(Exception):
@@ -102,6 +104,8 @@ class WebSocket:
             n = struct.unpack(">H", self._recv_exact(2))[0]
         elif n == 127:
             n = struct.unpack(">Q", self._recv_exact(8))[0]
+        if n > MAX_FRAME_BYTES:
+            raise WebSocketError(f"帧长度 {n} 超过上限 {MAX_FRAME_BYTES}")
         mask = self._recv_exact(4) if masked else None
         payload = self._recv_exact(n)
         if mask:
