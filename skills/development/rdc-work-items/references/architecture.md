@@ -25,6 +25,10 @@
   `auth --manual` 手动粘贴 Cookie 兜底（无 GUI / 无法启动浏览器时）。
 - `auth_is_stale` 按 `auth_max_age_hours` 判断鉴权时效，API 命令前与 `doctor`
   会提示。
+- **复用既有调试浏览器的风险**：`discover_ws_url` 会读取本机默认 Chrome/Edge 配置目录的
+  `DevToolsActivePort` 或 HTTP 探测调试端口；在共享/多用户主机上可能命中他人调试实例，
+  从而提取到他人登录态。缓解：自动启动时 `pick_free_port` 避开被占用端口；复用既有浏览器
+  前打印提示；必要时用 `auth --manual` 手动粘贴 Cookie。不要在共享主机上信任自动发现。
 
 ### 环境自检（doctor.py）
 - 只读检查：配置占位符、鉴权文件存在性与时效、浏览器调试端口可达性、
@@ -32,7 +36,7 @@
 
 ### WebSocket（ws.py）
 - 手写 RFC 6455 客户端：`socket` 建连、`base64`/`hashlib` 计算
-  `Sec-WebSocket-Accept`、客户端帧掩码、自动应答 ping。
+  `Sec-WebSocket-Accept`、客户端帧掩码、自动应答 ping、单帧长度上限 64MB。
 - **不发送 Origin 头**（等价原 `suppress_origin=True`），规避 Chrome/Edge CDP
   对带 Origin 连接的 403 拒绝。
 - `CDP.call(method, params, session_id)` 负责 id 配对与事件过滤。

@@ -152,6 +152,8 @@ def _run_auth_fetch(cfg, args):
     try:
         ws_url = auth.discover_ws_url(cfg)
         launched = False
+        print("ℹ 将复用本机已开启调试端口的浏览器读取登录态。"
+              "请确认这是你自己的浏览器（共享主机上勿复用他人调试实例，必要时改用 auth --manual）。")
     except RuntimeError:
         if getattr(args, "no_launch", False):
             raise
@@ -159,7 +161,9 @@ def _run_auth_fetch(cfg, args):
         launched = True
         print(f"🚀 已自动启动浏览器（{os.path.basename(info['browser'])}，端口 {info['port']}），"
               "正在等待调试端口…")
-        ws_url = auth.wait_for_debug_port(cfg, timeout=60)
+        launch_cfg = dict(cfg)
+        launch_cfg["chrome_debug_port"] = info["port"]
+        ws_url = auth.wait_for_debug_port(launch_cfg, timeout=60)
     wait = getattr(args, "wait", None)
     if wait is None:
         wait = cfg.get("auth_wait_seconds", 120) if launched else 0

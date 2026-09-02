@@ -170,11 +170,26 @@ def _profile_in_use(profile_dir):
                for n in ("SingletonLock", "SingletonSocket", "SingletonCookie"))
 
 
+def pick_free_port(preferred):
+    """若 preferred 端口已被占用则顺延找空闲端口，避免误连他人调试实例。"""
+    import socket
+    for port in range(int(preferred or 9222), int(preferred or 9222) + 100):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.settimeout(0.3)
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+        finally:
+            s.close()
+    return int(preferred or 9222)  # 全被占用时按原端口尝试，让启动失败显性报错
+
+
 def launch_debug_browser(cfg, page_url=PAGE_URL):
     """自动启动带调试端口的浏览器并打开研发云页面。
 
     优先复用配置的 chrome_profile_dir（保持登录态，但需该目录未被占用）；
     占用或未配置时回退到独立配置目录（首次需登录一次，之后自动保持）。
+    端口会避开已被占用的调试端口（防止误连他人调试实例）。
     返回 {"browser","profile","port"}。
     """
     import subprocess
@@ -183,7 +198,7 @@ def launch_debug_browser(cfg, page_url=PAGE_URL):
         raise RuntimeError(
             "未找到可用的 Chrome/Edge/Chromium 浏览器。"
             "请提供浏览器可执行文件路径，或选择手动粘贴 Cookie 的方式完成登录。")
-    port = int(cfg.get("chrome_debug_port") or 9222)
+    port = pick_free_port(int(cfg.get("chrome_debug_port") or 9222))
     configured = cfg.get("chrome_profile_dir", "")
     if configured and not _profile_in_use(os.path.expanduser(configured)):
         profile = os.path.expanduser(configured)

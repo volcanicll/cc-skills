@@ -138,6 +138,31 @@ def test_save_auth_private_mode_and_default_path():
     assert loaded["headers"]["x-api-key"] == "k"
 
 
+def test_pick_free_port_avoids_busy_port():
+    """pick_free_port：空闲端口原样返回；被占用时顺延到空闲端口。"""
+    import socket
+
+    def free_port():
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+        s.close()
+        return port
+
+    free = free_port()
+    assert auth.pick_free_port(free) == free
+    busy = free_port()
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", busy))
+    listener.listen(1)
+    try:
+        chosen = auth.pick_free_port(busy)
+        assert chosen != busy and chosen > busy
+    finally:
+        listener.close()
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
