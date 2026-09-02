@@ -96,6 +96,18 @@ def test_global_config_auto_load():
         config.CONFIG_FILES = old
 
 
+def test_write_global_config_private_mode():
+    """含 api_key 的全局配置必须 0600 落盘（POSIX；Windows 跳过）。"""
+    import stat
+    if os.name == "nt":
+        return
+    tmp = tempfile.mkdtemp(prefix="rdc-cfg-mode-")
+    path = os.path.join(tmp, "rdc-work-items.yaml")
+    config.write_global_config({"api_key": "secret", "workspace": "W"}, path)
+    mode = stat.S_IMODE(os.stat(path).st_mode)
+    assert mode == 0o600, f"期望 0600，实际 {oct(mode)}"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

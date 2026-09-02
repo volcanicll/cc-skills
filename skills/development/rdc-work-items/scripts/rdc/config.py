@@ -101,12 +101,26 @@ def load_config(path=None):
     return cfg
 
 
-def write_global_config(data, path=None):
-    """把配置写入全局配置文件（多平台路径），返回写入路径。"""
-    path = path or global_config_path()
+def write_private_file(path, text):
+    """写入文件并收紧权限：目录 0700、文件 0600（POSIX 生效；Windows 下 mode 参数被忽略）。
+
+    用于 auth.json / 全局配置等含会话凭据与 API Key 的文件，
+    避免同机其它账号可读（默认 umask 022 下 open() 会产生 0644）。
+    """
     d = os.path.dirname(os.path.abspath(path))
     if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(yamlio.dump(data))
+        os.makedirs(d, mode=0o700, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    try:
+        os.chmod(path, 0o600)  # 兜底：覆盖 umask / 既有文件权限
+    except OSError:
+        pass  # 非 POSIX 平台无 chmod 语义，忽略
     return path
+
+
+def write_global_config(data, path=None):
+    """把配置写入全局配置文件（多平台路径，0600），返回写入路径。"""
+    path = path or global_config_path()
+    return write_private_file(path, yamlio.dump(data))

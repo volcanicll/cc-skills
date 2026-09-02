@@ -121,6 +121,23 @@ def test_profile_in_use():
     assert auth._profile_in_use(tmp) is True
 
 
+def test_save_auth_private_mode_and_default_path():
+    """auth.json 必须 0600 落盘，且默认路径不得落在仓库/包目录内。"""
+    import stat
+    pkg_dir = os.path.dirname(auth.__file__)
+    assert not auth.AUTH_FILE.startswith(pkg_dir),         f"默认鉴权路径 {auth.AUTH_FILE} 落在包目录内，有误提交风险"
+    assert auth.AUTH_FILE.endswith(os.path.join("rdc-work-items", "auth.json")), auth.AUTH_FILE
+
+    tmp = tempfile.mkdtemp(prefix="rdc-auth-mode-")
+    path = os.path.join(tmp, "auth.json")
+    auth.save_auth({"headers": {"x-api-key": "k"}, "cookie_header": "a=b"}, path)
+    if os.name != "nt":
+        mode = stat.S_IMODE(os.stat(path).st_mode)
+        assert mode == 0o600, f"期望 0600，实际 {oct(mode)}"
+    loaded = auth.load_auth(path)
+    assert loaded["headers"]["x-api-key"] == "k"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

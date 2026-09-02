@@ -19,8 +19,9 @@ import urllib.request
 from . import config
 from . import ws
 
-AUTH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "auth.json")
-AUTH_FILE = os.path.abspath(AUTH_FILE)
+# 鉴权文件与 config.DEFAULTS["auth_file"] 保持同源（~/.config/rdc-work-items/auth.json），
+# 禁止落在仓库/工作区内，避免活 Cookie 被误提交。
+AUTH_FILE = os.path.join(config.user_config_dir(), "auth.json")
 DOMAIN_FILTER = ("srdcloud.cn",)
 PAGE_URL = "https://www.srdcloud.cn"
 
@@ -360,11 +361,8 @@ def auth_is_stale(auth, max_hours=12):
 
 
 def save_auth(auth, path=AUTH_FILE):
-    d = os.path.dirname(os.path.abspath(path))
-    if d:
-        os.makedirs(d, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(auth, f, ensure_ascii=False, indent=2)
+    """保存鉴权数据（目录 0700、文件 0600，含会话 Cookie 与 API Key）。"""
+    config.write_private_file(path, json.dumps(auth, ensure_ascii=False, indent=2))
     return path
 
 
