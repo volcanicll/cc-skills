@@ -448,6 +448,12 @@ def cmd_update_status(args):
     if args.dry_run:
         print("⚠ 预览（dry-run）模式：已列出将流转的工作项，本次未调用接口、未做任何修改。")
         return
+    if args.status not in flow:
+        raise SystemExit(f"目标状态「{args.status}」不在状态流（{' → '.join(flow)}）中，无法流转")
+    if not args.yes:
+        if not _confirm(f"确认将 {len(ids)} 条工作项状态流转为「{args.status}」？"):
+            print("已取消。可先加 --dry-run 预览，或加 --yes 跳过确认。")
+            return
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "流转工作项状态")
     bo = api.update_work_items_state(cfg, _auth(args), ids, args.status)
@@ -697,6 +703,7 @@ def main():
     pss.add_argument("--status", required=True, help="目标状态（须按 status_flow 逐级流转）")
     pss.add_argument("--ids", default=None, help="逗号分隔的工作项编号，与 file 二选一")
     pss.add_argument("--dry-run", action="store_true", help="只打印将执行的操作，不调用接口")
+    pss.add_argument("--yes", action="store_true", help="跳过状态流转确认（非交互环境需加 --yes）")
     pss.set_defaults(func=cmd_update_status)
 
     psm = add(sub, "summary", help="查看文件内工作项")

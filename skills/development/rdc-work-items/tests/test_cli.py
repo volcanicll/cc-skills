@@ -258,6 +258,76 @@ def test_stats_missing_repos_natural_language():
     assert "请提供仓库路径" in out
 
 
+def test_update_status_requires_confirm():
+    """update-status 默认需确认：拒绝/非交互不调用接口；--yes 才执行；非法状态提前报错。"""
+    sys.path.insert(0, SCRIPTS)
+    import io
+    import contextlib
+    from rdc import api, cli
+
+    tmp = tempfile.mkdtemp(prefix="rdc-updstatus-")
+    auth_path = os.path.join(tmp, "auth.json")
+    with open(auth_path, "w", encoding="utf-8") as f:
+        json.dump({"headers": {}, "fetched_at": "2026-09-02 10:00:00"}, f)
+    cfg_path = os.path.join(tmp, "rdc-config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(
+            f"auth_file: {auth_path}\n"
+            "workspace: P22TEST0000001\nproject_id: P\nteam_id: T\n"
+            "tenant_id: 20001\napi_key: K\nassignee_emp_no: E\n"
+            "assignee_name: N\nteam_name: M\n")
+
+    class Args:
+        ids = "P22TEST0000001-6864,P22TEST0000001-6865"
+        file = None
+        status = "处理中"
+        dry_run = False
+        yes = False
+        config = cfg_path
+
+    orig_auth, orig_update, orig_confirm = (
+        cli._auth, api.update_work_items_state, cli._confirm)
+    calls = {"update": 0}
+
+    def fake_update(cfg, a, ids, status):
+        calls["update"] += 1
+        return {"succeededItems": [{"id": i} for i in ids], "failedItems": []}
+
+    cli._auth = lambda args: {"headers": {}}
+    api.update_work_items_state = fake_update
+    try:
+        # 拒绝确认 → 不调用接口
+        cli._confirm = lambda q, default=False: False
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cli.cmd_update_status(Args())
+        assert "已取消" in buf.getvalue()
+        assert calls["update"] == 0
+        # 确认 y → 调用接口
+        cli._confirm = lambda q, default=False: True
+        with contextlib.redirect_stdout(io.StringIO()):
+            cli.cmd_update_status(Args())
+        assert calls["update"] == 1
+        # --yes → 不询问直接执行
+        Args.yes = True
+        with contextlib.redirect_stdout(io.StringIO()):
+            cli.cmd_update_status(Args())
+        assert calls["update"] == 2
+        # 状态不在状态流 → 提前报错
+        Args.yes = False
+        Args.status = "已归档"
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                cli.cmd_update_status(Args())
+            raise AssertionError("非法状态应中止")
+        except SystemExit as e:
+            assert "不在状态流" in str(e)
+        assert calls["update"] == 2
+    finally:
+        cli._auth, api.update_work_items_state, cli._confirm = (
+            orig_auth, orig_update, orig_confirm)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

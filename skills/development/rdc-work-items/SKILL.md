@@ -78,7 +78,7 @@ metadata:
 | `prepare` | 导出格式 → 导入文件（清编号/改状态） | `prepare 8月.xlsx -o 导入-新建.xlsx --status 新建` |
 | `validate` | 校验导入文件（只读） | `validate 导入-新建.xlsx` |
 | `import` | 导入创建（默认需确认，`--yes` 跳过） | `import 导入-新建.xlsx --yes` |
-| `update-status` | 接口流转状态（`--dry-run` 预览） | `update-status 导出.xlsx --status 处理中 --dry-run` |
+| `update-status` | 接口流转状态（默认需确认，`--yes` 跳过；`--dry-run` 预览） | `update-status 导出.xlsx --status 处理中 --dry-run` |
 | `export` | 导出工作项 Excel | `export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31` |
 | `summary` | 查看文件内工作项 | `summary 8月.xlsx` |
 | `flow` | 全流程多模式（默认 dry-run） | `flow --src 8月.xlsx --mode full --yes` |
@@ -103,7 +103,7 @@ metadata:
 - **创建**：`import` 前会自动执行 `validate` 并打印"预计新增/更新 N 条"，默认需输入 `y` 确认
   （`--yes` 跳过）；导入返回 `failedItemsSize>0` 时自动下载错误报告保存为本地 `错误报告.xlsx`。
 - **状态流转**：`update-status` 从导入响应（`succeededItems[].data["1"]`）或含编号的
-  Excel 读取工作项编号，调用接口逐级流转；先 `--dry-run` 预览，返回 `failedItems` 时核对编号与状态。
+  Excel 读取工作项编号，调用接口逐级流转；先 `--dry-run` 预览，默认需自然语言确认后执行（`--yes` 跳过，非交互环境必须加），返回 `failedItems` 时核对编号与状态。
 - **续跑安全**：`flow --mode import` 与 `--mode status` 分离，编号落盘 `ids.json`，
   中途失败后重跑 `status` 模式不会重复创建。
 - `auth.json` 含登录态 cookie，勿提交到 git。

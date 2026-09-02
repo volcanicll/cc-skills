@@ -77,6 +77,8 @@ python3 scripts/rdc_workflow --config rdc-config.yaml update-status 导出.xlsx 
 # 或直接指定编号
 python3 scripts/rdc_workflow --config rdc-config.yaml update-status --ids P22TEST0000001-6864,P22TEST0000001-6865 --status 已完成
 ```
+`update-status` 默认会在执行前用自然语言向你确认（`--yes` 跳过）；非交互（脚本/Agent）环境必须加 `--yes`，
+否则只预览不流转。目标状态不在 `status_flow` 中会直接报错。
 
 逐级执行：`处理中 → 已完成 → 已关闭`（按 `status_flow`，不可跳级）。
 
