@@ -92,7 +92,7 @@ python3 scripts/rdc_workflow --config rdc-config.yaml flow --src 营销域8月-�
 # 只创建（编号保存到 flow/ids.json，供续跑）
 python3 scripts/rdc_workflow --config rdc-config.yaml flow --src 营销域8月-示例.xlsx --out-dir flow --mode import --yes
 
-# 只流转（读 flow/ids.json，或 --ids 指定编号）——中途失败后可安全重跑，不会重复创建
+# 只流转（读 flow/ids.json，或 --ids 指定编号）——中途失败后从最后成功状态续跑，不会重复创建/重放
 python3 scripts/rdc_workflow --config rdc-config.yaml flow --out-dir flow --mode status --yes
 ```
 

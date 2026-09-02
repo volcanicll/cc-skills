@@ -529,21 +529,53 @@ def cmd_export(args):
     print(f"✅ 已导出 {r['saved']}（{r['bytes']} 字节，共 {r['task'].get('totalSize', '?')} 条）")
 
 
-def _save_flow_ids(out_dir, ids, flow):
+def _save_flow_ids(out_dir, ids, flow, reached=0):
+    """保存续跑状态：ids + 状态流快照 + 已推进到的状态下标（reached 指向 flow 内下标）。
+
+    每级状态流转成功后都会更新 reached，使 flow --mode status 断点续跑不会重放已过的状态。
+    """
     path = os.path.join(out_dir, "ids.json")
-    data = {"ids": ids, "status_flow": flow,
+    data = {"ids": ids, "status_flow": flow, "reached": int(reached or 0),
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     return path
 
 
-def _load_flow_ids(out_dir):
+def _load_flow_state(out_dir):
+    """读取续跑状态（dict）；文件不存在返回 None。"""
     path = os.path.join(out_dir, "ids.json")
     if not os.path.exists(path):
-        return []
+        return None
     with open(path, encoding="utf-8") as f:
-        return json.load(f).get("ids", [])
+        data = json.load(f)
+    data["reached"] = int(data.get("reached", 0) or 0)
+    return data
+
+
+def _load_flow_ids(out_dir):
+    """兼容包装：只返回编号列表。"""
+    state = _load_flow_state(out_dir)
+    return (state or {}).get("ids", [])
+
+
+def _resume_from_state(out_dir, flow):
+    """读取续跑状态并校验状态流一致性，返回 (ids, reached)；无文件返回 (None, 0)。
+
+    已保存的 status_flow 与当前配置不一致时拒绝续跑，防止按错误的状态顺序重放。
+    """
+    state = _load_flow_state(out_dir)
+    if not state:
+        return None, 0
+    ids = state.get("ids", [])
+    saved_flow = state.get("status_flow") or []
+    if saved_flow and list(saved_flow) != list(flow):
+        raise SystemExit(
+            "已保存续跑信息中的状态流与当前配置不一致（"
+            + " → ".join(str(x) for x in saved_flow) + " vs "
+            + " → ".join(str(x) for x in flow) + "）。"
+            + f"请删除 {os.path.join(out_dir, 'ids.json')} 后重新创建，或用 --ids 指定编号。")
+    return ids, min(state.get("reached", 0), max(len(flow) - 1, 0))
 
 
 def cmd_flow(args):
@@ -603,27 +635,38 @@ def cmd_flow(args):
             args.yes = True  # 用户已确认继续
 
     # mode == "status"
+    start = 0
     if not ids:
-        ids = _load_flow_ids(args.out_dir)
+        loaded_ids, start = _resume_from_state(args.out_dir, flow)
+        if loaded_ids:
+            ids = loaded_ids
     if not ids:
         raise SystemExit("未获取到工作项编号。请先创建并导入工作项，或提供已有编号。")
-    print(f"状态流转：{' → '.join(flow)}（共 {len(ids)} 条）")
+    remaining = flow[start + 1:]
+    if not remaining:
+        print(f"✅ 状态已全部流转完成（当前 {flow[start]}），无需继续。")
+        print("   工作项编号：", ", ".join(ids))
+        return
+    print(f"状态流转：{' → '.join(flow)}（共 {len(ids)} 条，"
+          f"当前 {flow[start]}，将流转 {' → '.join(remaining)}）")
     shown = ", ".join(ids[:10]) + ("…" if len(ids) > 10 else "")
     print(f"   工作项编号：{shown}")
     if not args.yes:
         print("⚠ 预览模式：已列出将流转的工作项，本次未调用接口、未做任何修改。")
-        if not _confirm("确认执行状态流转？"):
+        if not _confirm(f"确认执行状态流转（{len(ids)} 条 → {' → '.join(remaining)}）？"):
             print("已取消。")
             return
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "流转工作项状态")
-    for st in flow[1:]:
+    for i in range(start + 1, len(flow)):
+        st = flow[i]
         bo = api.update_work_items_state(cfg, _auth(args), ids, st)
         ok = len(bo.get("succeededItems", []))
         failed = bo.get("failedItems", [])
         if failed:
             print(f"❌ 状态 {st} 更新失败：{json.dumps(failed, ensure_ascii=False)[:500]}")
             break
+        _save_flow_ids(args.out_dir, ids, flow, reached=i)  # 每级成功即持久化
         print(f"✅ 状态 {st} 更新成功：{ok}/{len(ids)} 条")
     print("🎉 流程完成。工作项编号：", ", ".join(ids))
 

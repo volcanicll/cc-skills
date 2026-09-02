@@ -87,7 +87,7 @@ metadata:
 `flow` 三种模式（`--mode`，均默认 dry-run，加 `--yes` 执行）：
 - `full`（默认）：prepare → validate → import（创建）→ 接口逐级流转；
 - `import`：只创建，工作项编号保存到 `--out-dir/ids.json`；
-- `status`：只流转状态（读 `--out-dir/ids.json` 或 `--ids` 指定编号），用于断点续跑，不会重复创建。
+- `status`：只流转状态（读 `--out-dir/ids.json` 或 `--ids` 指定编号），用于断点续跑；每级成功后记录进度，重跑从中断处继续，不会重复创建、不会重放已流转状态。
 
 ## 关键规则（安全）
 

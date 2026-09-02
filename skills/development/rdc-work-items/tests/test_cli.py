@@ -354,6 +354,29 @@ def test_setup_config_no_input_noninteractive():
     assert "--no-input" in out and "--yes" in out
 
 
+def test_flow_resume_state_helpers():
+    """续跑状态：reached 持久化、状态流一致性校验、无文件回退。"""
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    tmp = tempfile.mkdtemp(prefix="rdc-resume-")
+    flow = ["新建", "处理中", "已完成", "已关闭"]
+    cli._save_flow_ids(tmp, ["A-1", "A-2"], flow, reached=2)
+    st = cli._load_flow_state(tmp)
+    assert st["ids"] == ["A-1", "A-2"]
+    assert st["reached"] == 2
+    assert st["status_flow"] == flow
+    ids, reached = cli._resume_from_state(tmp, flow)
+    assert ids == ["A-1", "A-2"] and reached == 2
+    # 状态流与当前配置不一致 → 拒绝续跑
+    try:
+        cli._resume_from_state(tmp, ["新建", "处理中", "已完成"])
+        raise AssertionError("状态流不一致应拒绝续跑")
+    except SystemExit as e:
+        assert "不一致" in str(e)
+    # 无续跑文件 → (None, 0)
+    assert cli._resume_from_state(os.path.join(tmp, "empty"), flow) == (None, 0)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
