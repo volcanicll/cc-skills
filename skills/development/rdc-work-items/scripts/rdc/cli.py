@@ -22,8 +22,9 @@
   python -m rdc.cli prepare 营销域8月-示例.xlsx -o 导入-新建.xlsx --status 新建
   python -m rdc.cli validate 导入-新建.xlsx            # 只读校验（导入前建议先跑）
 
-  # 单步 3：只导出工作项
+  # 单步 3：只导出工作项（--since/--until=创建时间；也可按计划开始时间 --plan-since/--plan-until 过滤，可叠加）
   python -m rdc.cli export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31
+  python -m rdc.cli export -o 导出.xlsx --plan-since 2026-07-31 --plan-until 2026-08-14
 
   # 单步 4：只流转状态（读含编号 Excel / import 保存的编号文件 / --ids）
   python -m rdc.cli update-status 导出.xlsx --status 处理中 --dry-run
@@ -559,6 +560,8 @@ def cmd_export(args):
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "导出工作项")
     r = api.export_excel(cfg, _auth(args), args.out, since=args.since, until=args.until,
+                         plan_since=getattr(args, "plan_since", None),
+                         plan_until=getattr(args, "plan_until", None),
                          assignee=args.assignee, state=args.state, page_size=args.page_size)
     total = r.total if r.total is not None else "?"
     print(f"✅ 已导出 {r.saved}（{r.bytes} 字节，共 {total} 条）")
@@ -808,6 +811,10 @@ def main():
     pe.add_argument("-o", "--out", required=True)
     pe.add_argument("--since")
     pe.add_argument("--until")
+    pe.add_argument("--plan-since", default=None,
+                    help="计划开始时间起（DXYJY_PlanStartDate），与 --plan-until 成对按 between 过滤")
+    pe.add_argument("--plan-until", default=None,
+                    help="计划开始时间止（DXYJY_PlanStartDate），与 --plan-since 成对按 between 过滤")
     pe.add_argument("--assignee", default=None)
     pe.add_argument("--state", default="@all")
     pe.add_argument("--page-size", type=int, default=200)

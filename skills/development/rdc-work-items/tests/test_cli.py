@@ -67,7 +67,7 @@ def test_no_third_party_imports():
 def test_version_flag():
     r = _run("--version", cwd=SCRIPTS)
     assert r.returncode == 0
-    assert "2.4.0" in r.stdout
+    assert "2.5.0" in r.stdout
 
 
 def test_update_status_dry_run():

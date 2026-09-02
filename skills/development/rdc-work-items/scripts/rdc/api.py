@@ -144,9 +144,13 @@ def import_ids(bo):
     return ids
 
 
-def export_body(cfg, since=None, until=None, assignee=None, state="@all",
-               page_size=200, select_items=None):
-    """构造导出请求体（与研发云页面实际报文一致，2026-09 实测）。"""
+def export_body(cfg, since=None, until=None, plan_since=None, plan_until=None,
+               assignee=None, state="@all", page_size=200, select_items=None):
+    """构造导出请求体（与研发云页面实际报文一致，2026-09 实测）。
+
+    since/until = 创建时间（System_CreatedDate）；plan_since/plan_until =
+    计划开始时间（DXYJY_PlanStartDate），均按 between 过滤、可叠加。
+    """
     assignee = assignee or cfg.get("assignee_emp_no")
     assignee_name = cfg.get("assignee_name", "")
     filters = [
@@ -167,6 +171,12 @@ def export_body(cfg, since=None, until=None, assignee=None, state="@all",
         filters.append({
             "data": f'["{since}","{until}"]', "filterId": "System_CreatedDate",
             "operator": "between", "filterValue": f"{since},{until}", "hidden": False,
+        })
+    if plan_since and plan_until:
+        # 计划开始时间（DXYJY_PlanStartDate），字段形状对齐平台页面实际报文
+        filters.append({
+            "data": f'["{plan_since}","{plan_until}"]', "filterId": "DXYJY_PlanStartDate",
+            "operator": "between", "filterValue": f"{plan_since},{plan_until}", "hidden": False,
         })
 
     select_items = select_items or [
@@ -201,10 +211,16 @@ def export_body(cfg, since=None, until=None, assignee=None, state="@all",
     }
 
 
-def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
-                 state="@all", page_size=200, team_id=None, select_items=None):
-    """导出工作项 Excel（异步任务，返回 fileUrl 后下载）。"""
-    body = export_body(cfg, since=since, until=until, assignee=assignee,
+def export_excel(cfg, auth, out_path, since=None, until=None, plan_since=None,
+                 plan_until=None, assignee=None, state="@all", page_size=200,
+                 team_id=None, select_items=None):
+    """导出工作项 Excel（异步任务，返回 fileUrl 后下载）。
+
+    since/until = 创建时间（System_CreatedDate）；plan_since/plan_until =
+    计划开始时间（DXYJY_PlanStartDate），两者都提供时按 between 过滤、可与创建时间叠加。
+    """
+    body = export_body(cfg, since=since, until=until, plan_since=plan_since,
+                       plan_until=plan_until, assignee=assignee,
                        state=state, page_size=page_size, select_items=select_items)
     url = f"{cfg['base_url']}/wim/workItem/workspaces/{cfg['workspace']}/export/excel?flap=false"
     data = _check_code(net.request_json("POST", url, _headers(cfg, auth), payload=body, timeout=120))

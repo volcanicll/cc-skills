@@ -63,7 +63,29 @@ def test_export_body_no_date_filter():
     body = api.export_body(CFG)
     fid = [f["filterId"] for f in body["filterItems"]]
     assert "System_CreatedDate" not in fid
+    assert "DXYJY_PlanStartDate" not in fid
     assert body["filterItems"][0]["filterValue"] == "srd10000000000"
+
+
+def test_export_body_plan_start_filter():
+    """计划开始时间（DXYJY_PlanStartDate）单独过滤，字段形状对齐平台页面报文。"""
+    body = api.export_body(CFG, plan_since="2026-07-31", plan_until="2026-08-14")
+    fid = [f["filterId"] for f in body["filterItems"]]
+    assert "System_CreatedDate" not in fid
+    assert fid[-1] == "DXYJY_PlanStartDate"
+    plan = body["filterItems"][-1]
+    assert plan["operator"] == "between"
+    assert plan["data"] == '["2026-07-31","2026-08-14"]'
+    assert plan["filterValue"] == "2026-07-31,2026-08-14"
+    assert plan["hidden"] is False
+
+
+def test_export_body_plan_start_plus_created():
+    """创建时间与计划开始时间可叠加过滤，计划开始时间排在其后。"""
+    body = api.export_body(CFG, since="2026-09-01", until="2026-09-02",
+                           plan_since="2026-07-31", plan_until="2026-08-14")
+    fid = [f["filterId"] for f in body["filterItems"]]
+    assert fid[-2:] == ["System_CreatedDate", "DXYJY_PlanStartDate"]
 
 
 if __name__ == "__main__":
