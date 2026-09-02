@@ -70,8 +70,14 @@ python3 scripts/rdc_workflow --config rdc-config.yaml build-excel -i work_items.
 ### B. 只导出工作项（在线，用于月度记录 / 核对 / 作为流转底稿）
 
 ```bash
+# 按创建时间导出（--since/--until = System_CreatedDate，缺省不加创建时间过滤）
 python3 scripts/rdc_workflow --config rdc-config.yaml export -o 导出.xlsx \
   --since 2026-08-01 --until 2026-08-31
+
+# 也可按计划开始时间过滤（--plan-since/--plan-until = DXYJY_PlanStartDate，
+# 两者成对按 between 过滤，可叠加创建时间过滤）
+python3 scripts/rdc_workflow --config rdc-config.yaml export -o 导出.xlsx \
+  --since 2026-08-01 --until 2026-08-31 --plan-since 2026-07-31 --plan-until 2026-08-14
 ```
 导出的 Excel 含「编号」列，可直接作为 `update-status` 的输入（读编号列流转状态）。
 

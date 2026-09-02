@@ -51,7 +51,11 @@ body: filterItems(指派给/状态/创建时间等) + selectItems(8 列) + ...
 `file_url_hosts` 白名单，默认 `.srdcloud.cn`；其余地址拒绝，避免外带 Cookie 或读本地文件）。
 body 已按 2026-09 页面实际成功报文对齐：`workItemTypeKeys=[]`、
 `crossWorkspaceKeyMapping.filter=[]`、按 `System_ChangedDate` 倒序、
-日期过滤用 `System_CreatedDate`（between）。
+日期过滤用 `System_CreatedDate`（between，创建时间）；另支持按
+`DXYJY_PlanStartDate`（计划开始时间，between）过滤，形状同页面报文：
+`{"data": "[\"起\",\"止\"]", "filterId": "DXYJY_PlanStartDate",
+"operator": "between", "filterValue": "起,止", "hidden": false}`，
+CLI 对应 `--plan-since/--plan-until`。
 
 ### 4. 状态流转（updateWorkItems，PUT）
 

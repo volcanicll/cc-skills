@@ -75,10 +75,13 @@ metadata:
 | `validate` | 校验导入文件（只读） | `validate 导入-新建.xlsx` |
 | `import` | 导入创建（默认需确认，`--yes` 跳过；可直接收工作量 Excel，自动转导入文件） | `import 8月.xlsx --yes --ids-out 8月-ids.json` |
 | `update-status` | 接口流转状态（读含编号 Excel / `--ids-file` / `--ids`；默认需确认，`--yes` 跳过） | `update-status 导出.xlsx --status 处理中 --dry-run` |
-| `export` | 导出工作项 Excel | `export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31` |
+| `export` | 导出工作项 Excel（可按创建/计划开始时间过滤） | `export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31` |
 | `summary` | 查看文件内工作项 | `summary 8月.xlsx` |
 | `flow` | 一键全流程多模式（默认 dry-run） | `flow --src 8月.xlsx --mode full --yes` |
 | `--version` | 查看版本 | `rdc_workflow --version` |
+
+`export` 过滤说明：`--since/--until` = 创建时间（System_CreatedDate）；`--plan-since/--plan-until` =
+计划开始时间（DXYJY_PlanStartDate，成对按 between 过滤，可与创建时间叠加）。
 
 `flow` 三种模式（`--mode`，均默认 dry-run，加 `--yes` 执行）：
 - `full`（默认）：prepare → validate → import（创建）→ 接口逐级流转；
