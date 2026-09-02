@@ -63,6 +63,11 @@ def prepare(src, out, status="新建", keep_ids=False, keep_updated_time=False):
 
     # 仅保留在标准导出结果中的列
     keep = [h for h in HEADER_ORDER if h in cols]
+    missing = [h for h in HEADER_ORDER if h not in cols]
+    warnings = []
+    if missing:
+        warnings.append(
+            f"源文件缺少标准列：{', '.join(missing)}（已忽略，确认是否为平台导出格式）")
     if not keep_updated_time:
         for drop in ("更新时间", "创建人", "创建时间"):
             if drop in keep:
@@ -84,4 +89,5 @@ def prepare(src, out, status="新建", keep_ids=False, keep_updated_time=False):
 
     widths = {chr(65 + j): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
     xlsx.write_table(out, keep, out_rows, sheet_name="导出结果", widths=widths)
-    return {"items": len(out_rows), "status": status, "columns": keep, "out": out}
+    return {"items": len(out_rows), "status": status, "columns": keep,
+            "warnings": warnings, "out": out}

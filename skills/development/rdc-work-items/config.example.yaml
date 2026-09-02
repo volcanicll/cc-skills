@@ -1,7 +1,8 @@
 # ============ 研发云工作项自动化 - 可自定义变量 ============
-# 首次使用推荐运行 `python3 scripts/rdc_workflow setup-config` 交互向导，
-# 把参数写入全局配置（macOS/Linux ~/.config/rdc-work-items.yaml，Windows %APPDATA%\rdc-work-items.yaml），
-# 之后所有命令自动加载，无需 --config。
+# 使用顺序：先运行 `auth` 获取登录信息（员工号/项目/团队自动提取），
+# 仍缺失的工作区/API Key/团队名称等，工具会以自然语言逐个提示补齐，
+# 并询问是否保存为全局配置（macOS/Linux ~/.config/rdc-work-items.yaml，Windows %APPDATA%\rdc-work-items.yaml）。
+# 也可以运行 `python3 scripts/rdc_workflow setup-config` 交互向导一次性配置。
 # 本文件可复制为 rdc-config.yaml 作为本地覆盖（优先级高于全局配置）。
 # 纯 Python 标准库运行，无需 pip 安装任何依赖。
 
@@ -42,11 +43,20 @@ state_field_id: "63f96af738aa624d3b708445"  # System_State 字段元数据 id（
 # macOS 示例：
 #   chrome_profile_dir: "~/Library/Application Support/Google/Chrome"
 # 留空时脚本自动按操作系统探测 Chrome/Edge 的 DevToolsActivePort 或调试端口。
+# auth 未发现调试端口时会自动启动浏览器（可用 --no-launch 关闭）：
+#   优先复用 chrome_profile_dir（保持登录态，但该目录被占用时回退到独立配置目录）；
+#   也可用 auth --manual 手动粘贴 Cookie（无 GUI 时兜底）。
 chrome_debug_port: 9222
 chrome_profile_dir: ""
+browser: "auto"                 # 自动启动时选择浏览器: auto / chrome / edge
+chrome_path: ""                 # 浏览器可执行文件绝对路径（自动探测失败时指定）
+auth_wait_seconds: 120          # auth 自动启动后等待登录的最长秒数（0=不等待）
+auth_max_age_hours: 12          # 鉴权文件超过该时长视为过期（API 命令前会提示）
 
 # ---- 工作量统计（git）----
 git_author: "YOUR_GIT_AUTHOR"              # 只统计该作者的提交
+# git_since: "2026-08-01"            # stats 未指定 --since 时使用（缺省当月 1 号）
+# git_until: "2026-08-31"            # stats 未指定 --until 时使用（缺省今天）
 repos:                              # 待扫描的 git 仓库（绝对路径）
   # 示例：
   # - "/path/to/your/repo-a"

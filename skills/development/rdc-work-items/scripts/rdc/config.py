@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""配置加载：所有环境相关变量集中于此，可通过 --config config.yaml 或全局配置自定义。
+"""配置加载：所有环境相关变量集中于此，可通过 --config rdc-config.yaml 或全局配置自定义。
 
 纯标准库：YAML 用内置 yamlio 解析/序列化，JSON 直接 json.load。
 支持多平台全局配置目录（macOS/Linux 用 ~/.config，Windows 用 %APPDATA%）。
@@ -61,6 +61,10 @@ DEFAULTS = {
     # ---- CDP / Chrome ----
     "chrome_debug_port": 9222,
     "chrome_profile_dir": "~/Library/Application Support/Google/Chrome",
+    "browser": "auto",                 # 自动启动时选择浏览器: auto/chrome/edge
+    "chrome_path": "",                 # 浏览器可执行文件绝对路径（自动探测失败时指定）
+    "auth_wait_seconds": 120,          # auth 自动启动后等待登录的最长秒数（0=不等待）
+    "auth_max_age_hours": 12,          # 鉴权文件超过该时长视为过期（API 命令前提示）
     # ---- 工作量统计（git）----
     "git_author": "YOUR_GIT_AUTHOR",
     "git_since": "",                       # 默认空=按参数传入

@@ -57,7 +57,7 @@ def import_items(cfg, auth, file_path, team_id=None):
 def import_ids(bo):
     """从 importExcel 响应 bo 提取成功创建的工作项编号列表。
 
-    平台返回形如：taskInfo.succeededItems[].data = {"1": "P22CQQYYF0016-6864"}
+    平台返回形如：taskInfo.succeededItems[].data = {"1": "P22TEST0000001-6864"}
     """
     task = bo.get("taskInfo") or bo
     ids = []

@@ -22,14 +22,14 @@ def test_roundtrip_basic():
     headers = ["编号", "标题", "初始估计", "详细说明"]
     rows = [
         ["", "前端开发-登录", "8", "完成登录模块"],
-        ["P22CQQYYF0016-6864", "工作助手", 16, "含换行\n第二行"],
+        ["P22TEST0000001-6864", "工作助手", 16, "含换行\n第二行"],
         [None, "布尔", "8", ""],
         [True, "布尔列", 8.5, "x"],
     ]
     h, r = _roundtrip(headers, rows, widths={"A": 24, "B": 46, "C": 12})
     assert h == headers
     assert r[0] == ["", "前端开发-登录", "8", "完成登录模块"]
-    assert r[1] == ["P22CQQYYF0016-6864", "工作助手", 16, "含换行\n第二行"]
+    assert r[1] == ["P22TEST0000001-6864", "工作助手", 16, "含换行\n第二行"]
     assert r[2] == ["", "布尔", "8", ""]
     assert r[3][0] is True and r[3][2] == 8.5
 
@@ -41,7 +41,7 @@ def test_xml_escaping():
 
 def test_read_shared_strings_and_types():
     """模拟平台导出的 sharedStrings 格式文件。"""
-    shared = ["编号", "标题", "状态", "P22CQQYYF0016-6864", "登录", "已完成"]
+    shared = ["编号", "标题", "状态", "P22TEST0000001-6864", "登录", "已完成"]
     ss_xml = ('<?xml version="1.0"?><sst xmlns="%s" count="6" uniqueCount="6">' % MAIN +
               "".join(f"<si><t>{s}</t></si>" for s in shared) + "</sst>")
     sheet_xml = ('<?xml version="1.0"?><worksheet xmlns="%s"><sheetData>' % MAIN +
@@ -72,8 +72,8 @@ def test_read_shared_strings_and_types():
         z.writestr("xl/worksheets/sheet1.xml", sheet_xml)
     h, r = xlsx.read_table(path)
     assert h == ["编号", "标题", "状态"]
-    assert r[0] == ["P22CQQYYF0016-6864", "登录模块", "已完成"]
-    assert r[1] == ["P22CQQYYF0016-6864", "登录", 1]
+    assert r[0] == ["P22TEST0000001-6864", "登录模块", "已完成"]
+    assert r[1] == ["P22TEST0000001-6864", "登录", 1]
     assert r[2][0] is True and r[2][1] == "公式值" and r[2][2] == 45890.5
 
 

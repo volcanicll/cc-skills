@@ -17,6 +17,19 @@
 
 ## 关键实现要点
 
+### 鉴权获取（auth.py）
+- 三级方式，尽量无感：① 自动发现已开调试端口的浏览器（DevToolsActivePort /
+  HTTP 探测）直接复用；② 未发现时自动启动带调试端口的浏览器（`find_browser`
+  按平台探测 Chrome/Edge/Chromium，优先复用 `chrome_profile_dir`，被占用时回退
+  到独立配置目录），打开研发云页面并等待登录（`auth_wait_seconds`）；③
+  `auth --manual` 手动粘贴 Cookie 兜底（无 GUI / 无法启动浏览器时）。
+- `auth_is_stale` 按 `auth_max_age_hours` 判断鉴权时效，API 命令前与 `doctor`
+  会提示。
+
+### 环境自检（doctor.py）
+- 只读检查：配置占位符、鉴权文件存在性与时效、浏览器调试端口可达性、
+  git 仓库是否有效；存在阻断性问题时退出码非 0。
+
 ### WebSocket（ws.py）
 - 手写 RFC 6455 客户端：`socket` 建连、`base64`/`hashlib` 计算
   `Sec-WebSocket-Accept`、客户端帧掩码、自动应答 ping。
@@ -54,7 +67,7 @@ stats(本机 git) → commits.json → work_items.json(AI 分组)
 ## 状态流转（不再走 Excel 导入）
 
 - 创建：`importExcel` 导入响应 `bo.taskInfo.succeededItems[].data["1"]`
-  返回工作项编号（如 `P22CQQYYF0016-6864`）。
+  返回工作项编号（如 `P22TEST0000001-6864`）。
 - 流转：`PUT {wic_base_url}/api/workspaces/{workspace}/work_items/updateWorkItems/edit`
   ，body 为 `workItems[] + fields[]`（`System_State`，`modifyType: replace`），
   逐级按 `status_flow` 调用，跳级由平台报"工作流不存在"。

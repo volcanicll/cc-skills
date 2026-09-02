@@ -14,11 +14,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from rdc import api
 
 CFG = {
-    "workspace": "P22CQQYYF0016",
-    "team_id": "bdv_33380",
+    "workspace": "P22TEST0000001",
+    "team_id": "test_team_001",
     "tenant_id": "20001",
-    "assignee_emp_no": "srd17347933525",
-    "assignee_name": "向灿",
+    "assignee_emp_no": "srd10000000000",
+    "assignee_name": "张三",
 }
 
 
@@ -26,12 +26,12 @@ def test_export_body_aligns_page_payload():
     body = api.export_body(CFG, since="2026-09-01", until="2026-09-02")
 
     assert body["appCode"] == "WicDefault"
-    assert body["conditions"] == ["System_WorkspaceKey='P22CQQYYF0016'"]
+    assert body["conditions"] == ["System_WorkspaceKey='P22TEST0000001'"]
     assert body["crossWorkspaceKeyMapping"] == {"filter": []}
     assert body["workItemTypeKeys"] == []
     assert body["sortItems"] == [{"isAscending": False, "key": "System_ChangedDate"}]
-    assert body["viewName"] == "P22CQQYYF0016AllWorkItems"
-    assert body["workspaceKey"] == "P22CQQYYF0016"
+    assert body["viewName"] == "P22TEST0000001AllWorkItems"
+    assert body["workspaceKey"] == "P22TEST0000001"
     assert body["queryCategory"] == "latest"
 
     # selectItems 与页面报文一致（8 列，工作项类型在前）
@@ -51,19 +51,19 @@ def test_export_body_aligns_page_payload():
     assert created["operator"] == "between"
 
     appoint = body["filterItems"][0]
-    assert appoint["filterValue"] == "srd17347933525"
+    assert appoint["filterValue"] == "srd10000000000"
     # data 是 JSON 字符串，解析后含 label
     data = json.loads(appoint["data"])
-    assert data[0]["label"] == "向灿 srd17347933525"
-    assert data[0]["value"] == "srd17347933525"
-    assert data[0]["name"] == "向灿"
+    assert data[0]["label"] == "张三 srd10000000000"
+    assert data[0]["value"] == "srd10000000000"
+    assert data[0]["name"] == "张三"
 
 
 def test_export_body_no_date_filter():
     body = api.export_body(CFG)
     fid = [f["filterId"] for f in body["filterItems"]]
     assert "System_CreatedDate" not in fid
-    assert body["filterItems"][0]["filterValue"] == "srd17347933525"
+    assert body["filterItems"][0]["filterValue"] == "srd10000000000"
 
 
 if __name__ == "__main__":

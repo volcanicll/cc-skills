@@ -44,11 +44,11 @@ def test_user_config_dir_windows():
 
 def test_yamlio_dump_roundtrip():
     data = {
-        "workspace": "P22CQQYYF0016",
-        "team_id": "bdv_33380",
+        "workspace": "P22TEST0000001",
+        "team_id": "test_team_001",
         "tenant_id": "20001",
         "api_key": "rdc_abc",
-        "assignee_name": "向灿",
+        "assignee_name": "张三",
         "status_flow": ["新建", "处理中", "已完成"],
         "repos": ["/a/repo", "/b/repo"],
         "wic_base_url": "https://www.srdcloud.cn/zte-plm-wic-api",
@@ -67,7 +67,7 @@ def test_yamlio_dump_roundtrip():
 def test_write_global_config_and_reload():
     tmp = tempfile.mkdtemp(prefix="rdc-cfg-")
     path = os.path.join(tmp, "rdc-work-items.yaml")
-    data = {"workspace": "P22CQQYYF0016", "team_id": "bdv_33380",
+    data = {"workspace": "P22TEST0000001", "team_id": "test_team_001",
             "repos": ["/a"], "status_flow": ["新建", "处理中"]}
     written = config.write_global_config(data, path)
     assert written == path and os.path.exists(path)
@@ -80,14 +80,14 @@ def test_global_config_auto_load():
     tmp = tempfile.mkdtemp(prefix="rdc-cfg-")
     gpath = os.path.join(tmp, "rdc-work-items.yaml")
     config.write_global_config(
-        {"workspace": "P22CQQYYF0016", "team_id": "bdv_33380",
+        {"workspace": "P22TEST0000001", "team_id": "test_team_001",
          "api_key": "k", "git_author": "xiangcan"}, gpath)
     old = config.CONFIG_FILES
     config.CONFIG_FILES = ["rdc-config.yaml", gpath]
     try:
         cfg = config.load_config()
-        assert cfg["workspace"] == "P22CQQYYF0016"
-        assert cfg["team_id"] == "bdv_33380"
+        assert cfg["workspace"] == "P22TEST0000001"
+        assert cfg["team_id"] == "test_team_001"
         assert cfg["api_key"] == "k"
         # DEFAULTS 兜底仍在
         assert cfg["base_url"].startswith("https://www.srdcloud.cn")

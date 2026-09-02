@@ -3,36 +3,45 @@
 ## 环境要求（零 pip 依赖）
 
 - Python 3.9+（仅标准库，无需 `pip install`）
-- Chrome / Edge（以 `--remote-debugging-port` 启动且已登录 srdcloud.cn）
+- Chrome / Edge / Chromium（`auth` 自动发现/自动启动，或 `--manual` 手动粘贴 Cookie）
 - git（本机已克隆待统计仓库）
 
 ## 准备（一次性）
 
-1. 首次配置（交互向导）：`python3 scripts/rdc_workflow setup-config`
-   - 输入 `workspace/project_id/team_id/tenant_id/api_key`（平台参数）、
-     `assignee_emp_no/assignee_name/team_name`（指派人）、`git_author`（git 作者）
-   - 写入全局配置 `~/.config/rdc-work-items.yaml`（Windows `%APPDATA%\rdc-work-items.yaml`），
-     之后所有命令自动加载，无需 `--config`
-   - 非交互方式：`setup-config --no-input --workspace … --api-key … --repos …`
-   - 可选：复制 `config.example.yaml` → 本地 `config.yaml` 覆盖（优先级高于全局）
+> 原则：**先获取登录信息，缺失的配置再由工具以自然语言提示你补齐**，
+> 不再要求先记住一长串命令。
+
+1. 提取登录信息（三种方式，按需选择）：
+   - 自动：`python3 scripts/rdc_workflow auth`
+     - 已开调试端口的浏览器会被自动发现复用（保持日常登录态）；
+     - 没有时自动启动带调试端口的浏览器：优先用 `chrome_profile_dir`（复用登录态，
+       但该目录被占用时回退到独立配置目录，首次需登录一次），打开研发云页面并等待登录；
+     - 不想自动启动：加 `--no-launch`（未发现调试端口直接报错）
+   - 手动：`python3 scripts/rdc_workflow auth --manual`
+     - 浏览器 F12 → Network → 任意 srdcloud.cn 请求 → 复制 Cookie 头粘贴即可
+   - Windows 用 `py -3 scripts\rdc_workflow …` 代替 `python3 scripts/rdc_workflow`
+   - 登录信息（员工号/项目/团队等）从浏览器自动提取，保存到
+     `~/.config/rdc-work-items/auth.json`（Windows `%APPDATA%\rdc-work-items\auth.json`）
+2. 补齐配置：登录信息提取后，工具会检查 `workspace/project_id/team_id/tenant_id/api_key`、
+   `assignee_emp_no/assignee_name/team_name`、`git_author`、`repos` 等是否齐全；
+   缺失项会以**自然语言**逐个提示你提供（终端下直接输入即可），并询问是否保存为全局配置
+   `~/.config/rdc-work-items.yaml`（Windows `%APPDATA%\rdc-work-items.yaml`），之后自动加载，无需 `--config`。
+   - 非交互环境（脚本/Agent）下会列出缺失项后退出，由使用者补充后重试；
+   - 也可以一次性走配置向导：`python3 scripts/rdc_workflow setup-config`
+     （回车用默认值；非交互用 `--no-input --workspace … --api-key … --repos …`）；
+   - 可选：复制 `config.example.yaml` → 本地 `rdc-config.yaml` 覆盖（优先级高于全局）；
    - `status_flow` / `wic_base_url` 等默认即可；如需调整见 `config.example.yaml` 注释
-2. 启动 Chrome（保留登录态）并打开研发云工作项页：
-   - macOS：`/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222`
-   - Windows：`start chrome --remote-debugging-port=9222`（或对 chrome.exe 快捷方式加该参数）
-   - 也可用 Edge；脚本自动探测 `DevToolsActivePort` 或 HTTP 探测调试端口
-3. 提取鉴权（无需任何 pip 包）：
-   ```bash
-   python3 scripts/rdc_workflow --config config.yaml auth
-   ```
-   （Windows 用 `py -3 scripts\rdc_workflow --config config.yaml auth`）
+3. （推荐）环境自检：`python3 scripts/rdc_workflow doctor`
+   - 只读检查：配置完整性、登录态时效、浏览器调试端口、git 仓库是否可访问
 
 ## 每月流程
 
 ### 1. 统计提交
 ```bash
-python3 scripts/rdc_workflow --config config.yaml stats \
+python3 scripts/rdc_workflow --config rdc-config.yaml stats \
   --since 2026-08-01 --until 2026-08-31 -o commits.json
 ```
+`--since/--until` 缺省用配置 `git_since/git_until` 或当月 1 号 ~ 今天。
 输出每个仓库的业务提交（自动过滤 merge/test/dist/chore 等噪音）。AI 按模块/功能人工分组为工作项。
 
 ### 2. 生成工作量 Excel
@@ -44,39 +53,48 @@ python3 scripts/rdc_workflow --config config.yaml stats \
 > 工时规则：AI 分组时单工作项最小 1 小时、最大 24 小时；月度总工时
 > 由多个工作项累加，单模块工作量较大时应拆分多个工作项。
 ```bash
-python3 scripts/rdc_workflow --config config.yaml build-excel -i work_items.json -o 营销域8月-示例.xlsx
+python3 scripts/rdc_workflow --config rdc-config.yaml build-excel -i work_items.json -o 营销域8月-示例.xlsx
 ```
 
 ### 3. 导入（创建）
 ```bash
-python3 scripts/rdc_workflow --config config.yaml prepare 营销域8月-示例.xlsx -o 导入-新建.xlsx --status 新建
-python3 scripts/rdc_workflow --config config.yaml validate 导入-新建.xlsx   # 应显示"预计新增 N 条"
-python3 scripts/rdc_workflow --config config.yaml import 导入-新建.xlsx     # 平台创建并返回编号
+python3 scripts/rdc_workflow --config rdc-config.yaml prepare 营销域8月-示例.xlsx -o 导入-新建.xlsx --status 新建
+python3 scripts/rdc_workflow --config rdc-config.yaml validate 导入-新建.xlsx   # 只读，显示"预计新增 N 条"
+python3 scripts/rdc_workflow --config rdc-config.yaml import 导入-新建.xlsx     # 导入前自动校验并确认
+# 或直接跳过确认：import 导入-新建.xlsx --yes
 ```
+- `import` 会自动先执行 `validate` 打印"预计新增/更新 N 条"，默认需输入 `y` 确认（`--yes` 跳过）；
+- 导入失败（`failedItemsSize>0`）时自动把错误报告保存为同目录 `错误报告.xlsx`。
 
 ### 4. 状态流转（接口方式，不再走 Excel 导入）
 创建后从导入响应提取工作项编号（`bo.taskInfo.succeededItems[].data["1"]`），
 用 `update-status` 逐级调用 `updateWorkItems/edit` 接口：
 
 ```bash
-# 从含编号的导出/导入文件读取编号并流转
-python3 scripts/rdc_workflow --config config.yaml update-status 导出.xlsx --status 处理中
+# 先预览（自然语言确认后再执行）
+python3 scripts/rdc_workflow --config rdc-config.yaml update-status 导出.xlsx --status 处理中 --dry-run
+python3 scripts/rdc_workflow --config rdc-config.yaml update-status 导出.xlsx --status 处理中
 # 或直接指定编号
-python3 scripts/rdc_workflow --config config.yaml update-status --ids P22CQQYYF0016-6864,P22CQQYYF0016-6865 --status 已完成
+python3 scripts/rdc_workflow --config rdc-config.yaml update-status --ids P22TEST0000001-6864,P22TEST0000001-6865 --status 已完成
 ```
 
 逐级执行：`处理中 → 已完成 → 已关闭`（按 `status_flow`，不可跳级）。
 
-### 5. 全流程（一步到位）
+### 5. 全流程（一步到位 / 多模式）
 ```bash
-python3 scripts/rdc_workflow --config config.yaml flow --src 营销域8月-示例.xlsx --out-dir flow --yes
+# 全流程：导入 + 逐级流转（默认 dry-run，--yes 执行）
+python3 scripts/rdc_workflow --config rdc-config.yaml flow --src 营销域8月-示例.xlsx --out-dir flow --yes
+
+# 只创建（编号保存到 flow/ids.json，供续跑）
+python3 scripts/rdc_workflow --config rdc-config.yaml flow --src 营销域8月-示例.xlsx --out-dir flow --mode import --yes
+
+# 只流转（读 flow/ids.json，或 --ids 指定编号）——中途失败后可安全重跑，不会重复创建
+python3 scripts/rdc_workflow --config rdc-config.yaml flow --out-dir flow --mode status --yes
 ```
-内部：prepare → validate → import（创建）→ 从响应提取编号 → 接口逐级流转。
-默认 dry-run（只校验不导入），加 `--yes` 才真正执行。
 
 ### 6. 导出（可选，用于月度记录）
 ```bash
-python3 scripts/rdc_workflow --config config.yaml export -o 导出.xlsx \
+python3 scripts/rdc_workflow --config rdc-config.yaml export -o 导出.xlsx \
   --since 2026-08-01 --until 2026-08-31
 ```
 
@@ -89,10 +107,11 @@ python3 scripts/rdc_workflow --config config.yaml export -o 导出.xlsx \
 |---|---|
 | 导入报"工作流不存在" | 状态名错误或跳级。核对 `status_flow` 与实际平台状态，逐级流转 |
 | 校验提示"列选项不能包含…" | 平台不支持导入该列（更新时间/创建人/创建时间），prepare 已默认移除 |
-| 导入 `failedItemsSize>0` | 工具自动下载错误报告查看具体原因；常见为单据被修改，重新导出最新文件再导入 |
-| `update-status` 返回 failedItems | 编号错误 / 状态非法 / 跳级；核对编号与 `status_flow` |
+| 导入 `failedItemsSize>0` | 工具自动保存错误报告为 `错误报告.xlsx` 查看具体原因；常见为单据被修改，重新导出最新文件再导入 |
+| `update-status` 返回 failedItems | 编号错误 / 状态非法 / 跳级；核对编号与 `status_flow`，先用 `--dry-run` 预览 |
 | `check-excel` 显示"更新"而非"新增" | 文件含编号=更新已有项；创建新项需编号为空 |
 | CDP 连接 403 | 使用 suppress_origin（工具已内置）；勿用 agent-browser 自带的 Origin 头连接 |
-| Chrome 未开调试端口 | 用 `--remote-debugging-port=9222` 重启 Chrome（保留原用户目录与登录态） |
-| 鉴权过期 | 重新运行 `auth`（自动从页面提取最新 cookie/token） |
+| 未发现调试端口 | 直接运行 `auth` 自动启动浏览器；或 `auth --manual` 粘贴 Cookie |
+| 自动启动后未登录 | 在弹出的浏览器窗口完成登录，工具会等待 `auth_wait_seconds`（默认 120s）自动提取 |
+| 鉴权过期 | 重新运行 `auth`；`doctor` 可提前检查时效 |
 | 提示找不到模块 `websocket` 等 | 本工具已零依赖，无需安装；如残留旧脚本请用本版本 scripts/ |

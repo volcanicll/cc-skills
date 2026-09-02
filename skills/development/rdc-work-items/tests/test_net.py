@@ -60,7 +60,7 @@ def test_request_json_post():
 
 def test_multipart_body():
     body, boundary = net.multipart_body(
-        {"importHtmlField": "true", "teamId": "bdv_33380"},
+        {"importHtmlField": "true", "teamId": "test_team_001"},
         {"file": ("a.xlsx", b"PK\x03\x04binary", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     text = body.decode("utf-8")

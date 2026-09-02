@@ -8,6 +8,7 @@ getAllCookies 返回 {cookies:...}、evaluate 返回 {result:{value:...}}）。
 import json
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -17,9 +18,9 @@ CFG = {
     "api_key": "rdc_k",
     "tenant_id": "20001",
     "assignee_emp_no": "srd_emp",
-    "project_id": "9592",
-    "team_id": "bdv_33380",
-    "workspace": "P22CQQYYF0016",
+    "project_id": "12345",
+    "team_id": "test_team_001",
+    "workspace": "P22TEST0000001",
 }
 
 
@@ -34,7 +35,7 @@ class FakeCDP:
         if method == "Target.getTargets":
             return {"targetInfos": [
                 {"type": "page", "targetId": "T1",
-                 "url": "https://www.srdcloud.cn/zxwim/9592/allWorkItems?teamId=bdv_33380"},
+                 "url": "https://www.srdcloud.cn/zxwim/12345/allWorkItems?teamId=test_team_001"},
                 {"type": "page", "targetId": "T2", "url": "https://opencode.ai/workspace/x"},
             ]}
         if method == "Target.attachToTarget":
@@ -46,7 +47,7 @@ class FakeCDP:
             ]}
         if method == "Runtime.evaluate":
             return {"result": {"type": "string",
-                               "value": json.dumps({"local": {"EO_SPACE_KEY": "9592"}, "session": {}})}}
+                               "value": json.dumps({"local": {"EO_SPACE_KEY": "12345"}, "session": {}})}}
         return {}
 
 
@@ -59,12 +60,12 @@ def test_fetch_auth_parses_result():
         auth.CDP = orig
     assert a["emp_no"] == "srd_emp"
     assert a["auth_value"] == "tok123"
-    assert a["project_id"] == "9592"
-    assert a["team_id"] == "bdv_33380"
+    assert a["project_id"] == "12345"
+    assert a["team_id"] == "test_team_001"
     assert a["headers"]["x-api-key"] == "rdc_k"
     assert a["headers"]["x-auth-value"] == "tok123"
     assert a["headers"]["x-emp-no"] == "srd_emp"
-    assert a["headers"]["x-project-id"] == "9592"
+    assert a["headers"]["x-project-id"] == "12345"
     assert a["headers"]["x-tenant-id"] == "20001"
     assert a["cookie_header"] and "prodtoken=tok123" in a["cookie_header"]
 
@@ -86,6 +87,38 @@ def test_fetch_auth_no_page_raises():
             assert "srdcloud.cn" in str(e)
     finally:
         auth.CDP = orig
+
+def test_auth_is_stale():
+    assert auth.auth_is_stale({"fetched_at": "2020-01-01 00:00:00"}, 12) is True
+    assert auth.auth_is_stale({"fetched_at": __import__("time").strftime("%Y-%m-%d %H:%M:%S")}, 12) is False
+    assert auth.auth_is_stale({}, 12) is True
+    assert auth.auth_is_stale({"fetched_at": "bad"}, 12) is True
+
+
+def test_manual_auth_parses_cookie():
+    cookie = ("prodtoken=tok123; CTWIMAPPDPGSSOUser=srd_emp; "
+              "CTWIMAPPDPGSSOCookie=c2; other=1")
+    a = auth.manual_auth(CFG, cookie=cookie, auth_value=None, emp_no=None)
+    assert a["auth_value"] == "tok123"
+    assert a["emp_no"] == "srd_emp"
+    assert a["headers"]["x-auth-value"] == "tok123"
+    assert a["headers"]["x-emp-no"] == "srd_emp"
+    assert a["source"] == "manual"
+    # 显式覆盖
+    a2 = auth.manual_auth(CFG, cookie=cookie, auth_value="override", emp_no="e2")
+    assert a2["auth_value"] == "override" and a2["emp_no"] == "e2"
+
+
+def test_find_browser_returns_str_or_none():
+    p = auth.find_browser({"browser": "auto", "chrome_path": ""})
+    assert p is None or isinstance(p, str)
+
+
+def test_profile_in_use():
+    tmp = tempfile.mkdtemp(prefix="rdc-prof-")
+    assert auth._profile_in_use(tmp) is False
+    open(os.path.join(tmp, "SingletonLock"), "w").close()
+    assert auth._profile_in_use(tmp) is True
 
 
 if __name__ == "__main__":

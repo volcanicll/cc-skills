@@ -36,7 +36,7 @@ file: <xlsx>
 ```
 成功返回 `bo.taskInfo`，其中：
 ```
-succeededItems[].data = {"1": "P22CQQYYF0016-6864"}   # 工作项编号
+succeededItems[].data = {"1": "P22TEST0000001-6864"}   # 工作项编号
 succeededItemsSize / failedItemsSize / fileUrl(错误报告)
 ```
 
@@ -61,7 +61,7 @@ x-wic-version: V1.24.22
 
 {
   "workItems": [
-    {"id": "P22CQQYYF0016-6864", "workItemTypeKey": "Task", "workspaceKey": "P22CQQYYF0016"}
+    {"id": "P22TEST0000001-6864", "workItemTypeKey": "Task", "workspaceKey": "P22TEST0000001"}
   ],
   "fields": [
     {"fieldObj": {…System_State 字段元数据…}, "key": "System_State", "name": "状态",

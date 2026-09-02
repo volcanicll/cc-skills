@@ -9,8 +9,8 @@ from rdc import api
 
 CFG = {
     "base_url": "https://www.srdcloud.cn/zte-rdcloud-rdc-wimbackend",
-    "workspace": "P22CQQYYF0016",
-    "team_id": "bdv_33380",
+    "workspace": "P22TEST0000001",
+    "team_id": "test_team_001",
     "tenant_id": "20001",
     "wic_base_url": "https://www.srdcloud.cn/zte-plm-wic-api",
     "wic_version": "V1.24.22",
@@ -55,17 +55,17 @@ def test_update_state_body():
         return {"code": {"code": "0000"}, "bo": {"succeededItems": [{"id": "x"}]}}
 
     with _patch_request_json(handler) as calls:
-        bo = api.update_work_items_state(CFG, AUTH, ["P22CQQYYF0016-6864", "P22CQQYYF0016-6865"], "已完成")
+        bo = api.update_work_items_state(CFG, AUTH, ["P22TEST0000001-6864", "P22TEST0000001-6865"], "已完成")
 
     method, url, headers, payload, timeout = calls[0]
     assert method == "PUT"
-    assert url == "https://www.srdcloud.cn/zte-plm-wic-api/api/workspaces/P22CQQYYF0016/work_items/updateWorkItems/edit"
+    assert url == "https://www.srdcloud.cn/zte-plm-wic-api/api/workspaces/P22TEST0000001/work_items/updateWorkItems/edit"
     assert headers["content-type"] == "application/json"
     assert headers["x-wic-version"] == "V1.24.22"
     assert headers["x-auth-value"] == "v"
     assert payload["workItems"] == [
-        {"id": "P22CQQYYF0016-6864", "workItemTypeKey": "Task", "workspaceKey": "P22CQQYYF0016"},
-        {"id": "P22CQQYYF0016-6865", "workItemTypeKey": "Task", "workspaceKey": "P22CQQYYF0016"},
+        {"id": "P22TEST0000001-6864", "workItemTypeKey": "Task", "workspaceKey": "P22TEST0000001"},
+        {"id": "P22TEST0000001-6865", "workItemTypeKey": "Task", "workspaceKey": "P22TEST0000001"},
     ]
     f = payload["fields"][0]
     assert f["key"] == "System_State"
@@ -75,7 +75,7 @@ def test_update_state_body():
     assert f["modifyType"] == "replace"
     assert f["type"] == "state"
     assert f["fieldObj"]["id"] == "63f96af738aa624d3b708445"
-    assert f["fieldObj"]["workspaceKey"] == "P22CQQYYF0016"
+    assert f["fieldObj"]["workspaceKey"] == "P22TEST0000001"
     assert f["fieldObj"]["key"] == "System_State"
     assert bo["succeededItems"] == [{"id": "x"}]
 
@@ -107,13 +107,13 @@ def test_import_ids():
         "taskInfo": {
             "failedItemsSize": 0,
             "succeededItems": [
-                {"data": {"1": "P22CQQYYF0016-6864"}, "result": 1},
-                {"data": {"1": "P22CQQYYF0016-6865"}, "result": 1},
+                {"data": {"1": "P22TEST0000001-6864"}, "result": 1},
+                {"data": {"1": "P22TEST0000001-6865"}, "result": 1},
             ],
             "succeededItemsSize": 2,
         }
     }
-    assert api.import_ids(bo) == ["P22CQQYYF0016-6864", "P22CQQYYF0016-6865"]
+    assert api.import_ids(bo) == ["P22TEST0000001-6864", "P22TEST0000001-6865"]
     assert api.import_ids({}) == []
 
 

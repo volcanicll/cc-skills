@@ -64,6 +64,199 @@ def test_no_third_party_imports():
         assert m is None, f"{fn} 仍引用第三方依赖: {m.group(1)}"
     print("  ✅ 无第三方依赖引用")
 
+def test_version_flag():
+    r = _run("--version", cwd=SCRIPTS)
+    assert r.returncode == 0
+    assert "2.3.0" in r.stdout
+
+
+def test_update_status_dry_run():
+    r = _run("update-status", "--ids", "P22TEST0000001-6864,P22TEST0000001-6865",
+             "--status", "处理中", "--dry-run", cwd=SCRIPTS)
+    assert r.returncode == 0
+    assert "dry-run" in r.stdout
+    assert "P22TEST0000001-6864" in r.stdout
+
+
+def test_flow_status_mode_requires_ids():
+    tmp = tempfile.mkdtemp(prefix="rdc-flow-")
+    r = _run("flow", "--mode", "status", "--out-dir", tmp, cwd=SCRIPTS)
+    assert r.returncode != 0
+    assert "未获取到工作项编号" in r.stderr or "未获取到工作项编号" in r.stdout
+
+
+def test_flow_ids_helpers():
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    tmp = tempfile.mkdtemp(prefix="rdc-ids-")
+    flow = ["新建", "处理中", "已完成", "已关闭"]
+    path = cli._save_flow_ids(tmp, ["A-1", "A-2"], flow)
+    assert os.path.exists(path)
+    assert cli._load_flow_ids(tmp) == ["A-1", "A-2"]
+    assert cli._load_flow_ids(os.path.join(tmp, "none")) == []
+
+
+def test_summarize_bo_truncates():
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    out = cli._summarize_bo({"successMsg": "预计新增 1 条", "huge": list(range(500))})
+    assert "预计新增 1 条" in out
+    assert "…" in out
+
+
+def test_import_confirm_flow():
+    """import 默认需确认：拒绝时只校验不导入；--yes 跳过确认直接导入。"""
+    sys.path.insert(0, SCRIPTS)
+    import io
+    import contextlib
+    from rdc import api, cli
+
+    tmp = tempfile.mkdtemp(prefix="rdc-import-")
+    auth_path = os.path.join(tmp, "auth.json")
+    with open(auth_path, "w", encoding="utf-8") as f:
+        json.dump({"headers": {}, "fetched_at": "2026-09-02 10:00:00"}, f)
+    cfg_path = os.path.join(tmp, "rdc-config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(
+            f"auth_file: {auth_path}\n"
+            "workspace: P22TEST0000001\nproject_id: P\nteam_id: T\n"
+            "tenant_id: 20001\napi_key: K\nassignee_emp_no: E\n"
+            "assignee_name: N\nteam_name: M\n")
+
+    class Args:
+        file = "导入-新建.xlsx"
+        yes = False
+        verbose = False
+        team_id = None
+        config = cfg_path
+
+    orig_auth, orig_validate, orig_import, orig_confirm = (
+        cli._auth, api.validate, api.import_items, cli._confirm)
+    calls = {"validate": 0, "import": 0}
+
+    def fake_validate(cfg, a, f):
+        calls["validate"] += 1
+        return {"successMsg": "预计新增 1 条"}
+
+    def fake_import(cfg, a, f, team_id=None):
+        calls["import"] += 1
+        return {"succeededItemsSize": 1, "failedItemsSize": 0,
+                "taskInfo": {"succeededItems": [{"data": {"1": "P22TEST0000001-6864"}}]}}
+
+    cli._auth = lambda args: {"headers": {}}
+    api.validate = fake_validate
+    api.import_items = fake_import
+    try:
+        # 拒绝确认 → 不导入
+        cli._confirm = lambda q, default=False: False
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cli.cmd_import(Args())
+        assert calls["validate"] == 1 and calls["import"] == 0, "拒绝确认不应导入"
+        assert "已取消" in buf.getvalue()
+        # 确认 y → 导入
+        cli._confirm = lambda q, default=False: True
+        with contextlib.redirect_stdout(io.StringIO()):
+            cli.cmd_import(Args())
+        assert calls["import"] == 1
+        # --yes → 不询问直接导入
+        Args.yes = True
+        with contextlib.redirect_stdout(io.StringIO()):
+            cli.cmd_import(Args())
+        assert calls["import"] == 2
+    finally:
+        cli._auth, api.validate, api.import_items, cli._confirm = (
+            orig_auth, orig_validate, orig_import, orig_confirm)
+
+
+def test_confirm_tty_and_non_tty():
+    """_confirm：终端按 y 确认、回车用默认值；非终端不执行任何操作。"""
+    sys.path.insert(0, SCRIPTS)
+    import builtins
+    from rdc import cli
+    orig_stdin, orig_input = sys.stdin, builtins.input
+
+    class FakeStdin:
+        def isatty(self):
+            return True
+
+    try:
+        sys.stdin = FakeStdin()
+        builtins.input = lambda *a, **k: "y"
+        assert cli._confirm("继续？") is True
+        builtins.input = lambda *a, **k: ""
+        assert cli._confirm("继续？", default=True) is True  # 回车用默认
+        builtins.input = lambda *a, **k: "n"
+        assert cli._confirm("继续？") is False
+        sys.stdin = orig_stdin  # 非终端
+        assert cli._confirm("继续？") is False  # 非交互不执行
+    finally:
+        sys.stdin, builtins.input = orig_stdin, orig_input
+
+
+def test_placeholder_and_missing_fields():
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    assert cli._is_placeholder(None)
+    assert cli._is_placeholder("")
+    assert cli._is_placeholder("YOUR_WORKSPACE")
+    assert not cli._is_placeholder("P22TEST")
+    cfg = {"workspace": "YOUR_WORKSPACE", "team_id": "T1", "api_key": ""}
+    fields = [("workspace", "工作区"), ("team_id", "团队 ID"), ("api_key", "API Key")]
+    missing = cli._missing_fields(cfg, fields)
+    assert [k for k, _ in missing] == ["workspace", "api_key"]
+
+
+def test_merge_auth_into_cfg():
+    """登录信息获取后回填配置中缺失的平台字段（先授权再补配置）。"""
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    tmp = tempfile.mkdtemp(prefix="rdc-merge-")
+    auth_path = os.path.join(tmp, "auth.json")
+    with open(auth_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "emp_no": "E1001", "project_id": "PRJ1", "team_id": "TEAM1",
+            "headers": {"x-tenant-id": "TENANT1", "x-api-key": "KEY1"},
+        }, f)
+    cfg = {"auth_file": auth_path, "workspace": "YOUR_WORKSPACE",
+           "project_id": "", "team_id": "", "tenant_id": "", "api_key": ""}
+    cli._merge_auth_into_cfg(cfg)
+    assert cfg["assignee_emp_no"] == "E1001"
+    assert cfg["project_id"] == "PRJ1"
+    assert cfg["team_id"] == "TEAM1"
+    assert cfg["tenant_id"] == "TENANT1"
+    assert cfg["api_key"] == "KEY1"
+
+
+def test_missing_config_natural_language():
+    """平台命令缺配置时：非交互环境用自然语言列出缺失项，不抛命令。"""
+    tmp = tempfile.mkdtemp(prefix="rdc-cfg-")
+    auth_path = os.path.join(tmp, "auth.json")
+    with open(auth_path, "w", encoding="utf-8") as f:
+        json.dump({"headers": {}, "fetched_at": "2026-09-02 10:00:00"}, f)
+    cfg_path = os.path.join(tmp, "rdc-config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(f"auth_file: {auth_path}\nworkspace: YOUR_WORKSPACE\n")
+    r = _run("--config", cfg_path, "validate", "x.xlsx", cwd=SCRIPTS)
+    assert r.returncode != 0
+    out = r.stdout + r.stderr
+    assert "缺少以下信息" in out
+    assert "工作区" in out and "团队 ID" in out
+    assert "setup-config" not in out
+
+
+def test_stats_missing_repos_natural_language():
+    """stats 未配置仓库时：非交互环境自然语言提示提供仓库路径。"""
+    tmp = tempfile.mkdtemp(prefix="rdc-stats-")
+    cfg_path = os.path.join(tmp, "rdc-config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write("repos: []\n")
+    r = _run("--config", cfg_path, "stats", cwd=SCRIPTS)
+    assert r.returncode != 0
+    out = r.stdout + r.stderr
+    assert "尚未提供待统计的 git 仓库路径" in out
+    assert "请提供仓库路径" in out
+
 
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):

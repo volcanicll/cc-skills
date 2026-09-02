@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from rdc import excelgen
 
 CFG = {"initial_status": "新建", "work_item_type": "任务", "task_type": "开发",
-       "assignee_name": "向灿", "assignee_emp_no": "srd17347933525",
+       "assignee_name": "张三", "assignee_emp_no": "srd10000000000",
        "team_name": "T"}
 
 
