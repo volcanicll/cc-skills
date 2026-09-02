@@ -77,6 +77,8 @@ def test_update_state_body():
     assert f["fieldObj"]["id"] == "63f96af738aa624d3b708445"
     assert f["fieldObj"]["workspaceKey"] == "P22TEST0000001"
     assert f["fieldObj"]["key"] == "System_State"
+    usage = f["fieldObj"]["usages"][0]
+    assert usage["workItemTypeKey"] == payload["workItems"][0]["workItemTypeKey"] == "Task"
     assert bo["succeededItems"] == [{"id": "x"}]
 
 

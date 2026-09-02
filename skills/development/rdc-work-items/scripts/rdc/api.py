@@ -217,7 +217,8 @@ def _state_field(cfg, status):
             {"key": "neq", "value": "≠", "wiqlOperator": "!="},
             {"key": "was", "value": "was", "wiqlOperator": "was"},
         ],
-        "workItemTypeKey": "Fault",
+        # 与 body workItems[].workItemTypeKey 保持一致（原页面快照硬编码 Fault，与 Task 不一致）
+        "workItemTypeKey": cfg.get("work_item_type_key", "Task"),
     }
     field_obj = {
         "calFormula": "",
