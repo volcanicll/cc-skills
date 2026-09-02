@@ -57,7 +57,7 @@ def run(cfg=None, auth_path=None):
             lines.append(f"  ✅ {label}（{key}）已配置")
     if _is_placeholder(cfg.get("git_author")):
         warnings += 1
-        lines.append("  ⚠ git_author 未配置（stats 将统计不到任何提交）")
+        lines.append("  ⚠ git_author 未配置（stats 将统计全部作者的提交，如需只统计本人请补充）")
     else:
         lines.append("  ✅ git_author 已配置")
 
