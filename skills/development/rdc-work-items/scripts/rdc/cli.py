@@ -400,12 +400,12 @@ def cmd_validate(args):
     cfg = _cfg(args)
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "校验导入文件")
-    bo = api.validate(cfg, _auth(args), args.file)
+    res = api.validate(cfg, _auth(args), args.file)
     if args.verbose:
-        print("校验结果：", json.dumps(bo, ensure_ascii=False, indent=2))
+        print("校验结果：", json.dumps(res.raw, ensure_ascii=False, indent=2))
     else:
         print("校验结果：")
-        print(_summarize_bo(bo))
+        print(_summarize_bo(res.raw))
 
 
 def cmd_prepare(args):
@@ -445,12 +445,10 @@ def cmd_update_status(args):
             return
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "流转工作项状态")
-    bo = api.update_work_items_state(cfg, _auth(args), ids, args.status)
-    succeeded = bo.get("succeededItems", [])
-    failed = bo.get("failedItems", [])
-    print(f"✅ 已更新 {len(succeeded)}/{len(ids)} 条状态为「{args.status}」")
-    if failed:
-        print("⚠ 失败项：", json.dumps(failed, ensure_ascii=False)[:1000])
+    res = api.update_work_items_state(cfg, _auth(args), ids, args.status)
+    print(f"✅ 已更新 {len(res.succeeded)}/{len(ids)} 条状态为「{args.status}」")
+    if res.failed:
+        print("⚠ 失败项：", json.dumps(res.failed, ensure_ascii=False)[:1000])
 
 
 def cmd_summary(args):
@@ -475,36 +473,33 @@ def cmd_import(args):
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "导入工作项")
     auth_data = _auth(args)
     # 导入前先只读校验，打印预计新增/更新
-    bo = api.validate(cfg, auth_data, args.file)
-    msg = bo.get("successMsg") or bo.get("errMsg") or "校验通过"
-    print(f"校验：{msg}")
+    res = api.validate(cfg, auth_data, args.file)
+    print(f"校验：{res.message or '校验通过'}")
     if args.verbose:
-        print(json.dumps(bo, ensure_ascii=False, indent=2))
+        print(json.dumps(res.raw, ensure_ascii=False, indent=2))
     else:
-        print(_summarize_bo(bo))
+        print(_summarize_bo(res.raw))
     if not args.yes:
         if not _confirm("确认导入到研发云（将创建/更新工作项）？"):
             print("已取消")
             return
-    task = api.import_items(cfg, auth_data, args.file, team_id=args.team_id)
-    ids = api.import_ids(task)
-    ok_n = task.get("succeededItemsSize", len(ids))
-    failed_n = task.get("failedItemsSize", 0)
-    print(f"✅ 导入完成：成功 {ok_n} 条，失败 {failed_n} 条")
+    imp = api.import_items(cfg, auth_data, args.file, team_id=args.team_id)
+    ids = imp.ids
+    print(f"✅ 导入完成：成功 {imp.succeeded} 条，失败 {imp.failed} 条")
     if ids:
         shown = ", ".join(ids[:5]) + ("…" if len(ids) > 5 else "")
         print(f"   工作项编号：{shown}")
-    if failed_n > 0:
-        url = task.get("fileUrl", "")
+    if imp.failed > 0:
+        url = imp.report_url
         if url:
             out_dir = os.path.dirname(os.path.abspath(args.file)) or "."
             report, text = _save_error_report(url, auth_data, out_dir, cfg)
-            print(f"⚠ 失败 {failed_n} 条，错误报告已保存：{report}")
+            print(f"⚠ 失败 {imp.failed} 条，错误报告已保存：{report}")
             print("   报告前 500 字：", text[:500])
         else:
-            print(f"⚠ 失败 {failed_n} 条，但平台未返回错误报告 fileUrl")
+            print(f"⚠ 失败 {imp.failed} 条，但平台未返回错误报告 fileUrl")
     if args.verbose:
-        print("完整响应：", json.dumps(task, ensure_ascii=False, indent=2))
+        print("完整响应：", json.dumps(imp.raw, ensure_ascii=False, indent=2))
 
 
 def cmd_export(args):
@@ -513,7 +508,8 @@ def cmd_export(args):
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "导出工作项")
     r = api.export_excel(cfg, _auth(args), args.out, since=args.since, until=args.until,
                          assignee=args.assignee, state=args.state, page_size=args.page_size)
-    print(f"✅ 已导出 {r['saved']}（{r['bytes']} 字节，共 {r['task'].get('totalSize', '?')} 条）")
+    total = r.total if r.total is not None else "?"
+    print(f"✅ 已导出 {r.saved}（{r.bytes} 字节，共 {total} 条）")
 
 
 def _save_flow_ids(out_dir, ids, flow, reached=0):
@@ -591,23 +587,22 @@ def cmd_flow(args):
             print("⚠", w)
         _ensure_auth(args, cfg)
         cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "创建并流转工作项")
-        bo = api.validate(cfg, _auth(args), imp0)
-        print(f"[1/2] 校验创建文件：{bo.get('successMsg') or bo.get('errMsg') or '通过'}")
+        res = api.validate(cfg, _auth(args), imp0)
+        print(f"[1/2] 校验创建文件：{res.message or '通过'}")
         if not args.yes:
             print("⚠ 预览模式：已校验创建文件，尚未创建任何工作项。")
             if not _confirm("确认执行创建？"):
                 print("已取消，未创建任何工作项。")
                 return
-        task = api.import_items(cfg, _auth(args), imp0)
-        if task.get("failedItemsSize", 0) > 0:
-            print("❌ 创建导入失败：", json.dumps(task, ensure_ascii=False)[:800])
-            url = task.get("fileUrl", "")
-            if url:
-                report, _ = _save_error_report(url, _auth(args), args.out_dir, cfg)
+        imp = api.import_items(cfg, _auth(args), imp0)
+        if imp.failed > 0:
+            print("❌ 创建导入失败：", json.dumps(imp.raw, ensure_ascii=False)[:800])
+            if imp.report_url:
+                report, _ = _save_error_report(imp.report_url, _auth(args), args.out_dir, cfg)
                 print(f"   错误报告已保存：{report}")
             return
-        ids = api.import_ids(task)
-        print(f"✅ 创建成功：{task.get('succeededItemsSize')} 条")
+        ids = imp.ids
+        print(f"✅ 创建成功：{imp.succeeded} 条")
         if not ids:
             print("⚠ 未能从导入响应提取工作项编号，跳过状态流转")
             return
@@ -647,11 +642,10 @@ def cmd_flow(args):
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "流转工作项状态")
     for i in range(start + 1, len(flow)):
         st = flow[i]
-        bo = api.update_work_items_state(cfg, _auth(args), ids, st)
-        ok = len(bo.get("succeededItems", []))
-        failed = bo.get("failedItems", [])
-        if failed:
-            print(f"❌ 状态 {st} 更新失败：{json.dumps(failed, ensure_ascii=False)[:500]}")
+        res = api.update_work_items_state(cfg, _auth(args), ids, st)
+        ok = len(res.succeeded)
+        if res.failed:
+            print(f"❌ 状态 {st} 更新失败：{json.dumps(res.failed, ensure_ascii=False)[:500]}")
             break
         _save_flow_ids(args.out_dir, ids, flow, reached=i)  # 每级成功即持久化
         print(f"✅ 状态 {st} 更新成功：{ok}/{len(ids)} 条")

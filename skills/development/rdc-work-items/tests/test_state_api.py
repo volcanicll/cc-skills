@@ -55,7 +55,7 @@ def test_update_state_body():
         return {"code": {"code": "0000"}, "bo": {"succeededItems": [{"id": "x"}]}}
 
     with _patch_request_json(handler) as calls:
-        bo = api.update_work_items_state(CFG, AUTH, ["P22TEST0000001-6864", "P22TEST0000001-6865"], "已完成")
+        res = api.update_work_items_state(CFG, AUTH, ["P22TEST0000001-6864", "P22TEST0000001-6865"], "已完成")
 
     method, url, headers, payload, timeout = calls[0]
     assert method == "PUT"
@@ -79,7 +79,9 @@ def test_update_state_body():
     assert f["fieldObj"]["key"] == "System_State"
     usage = f["fieldObj"]["usages"][0]
     assert usage["workItemTypeKey"] == payload["workItems"][0]["workItemTypeKey"] == "Task"
-    assert bo["succeededItems"] == [{"id": "x"}]
+    assert res.succeeded == [{"id": "x"}]
+    assert res.failed == []
+    assert res.raw["succeededItems"] == [{"id": "x"}]
 
 
 def test_update_state_empty_ids():

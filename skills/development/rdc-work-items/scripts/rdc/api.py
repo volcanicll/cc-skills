@@ -2,6 +2,7 @@
 """研发云工作项接口封装：check-excel / importExcel / export excel / updateWorkItems（纯标准库）。"""
 import os
 import urllib.parse
+from dataclasses import dataclass, field
 
 from . import net
 
@@ -42,6 +43,40 @@ class RdcError(Exception):
     pass
 
 
+@dataclass
+class ValidateResult:
+    """check-excel 校验结果：message 为平台 successMsg/errMsg 摘要，raw 保留原始 bo。"""
+    message: str = ""
+    raw: dict = field(default_factory=dict)
+
+
+@dataclass
+class ImportResult:
+    """importExcel 结果：ids 为成功创建的工作项编号，raw 保留原始 taskInfo/bo。"""
+    ids: list = field(default_factory=list)
+    succeeded: int = 0
+    failed: int = 0
+    report_url: str = ""
+    raw: dict = field(default_factory=dict)
+
+
+@dataclass
+class ExportResult:
+    """导出结果：saved/bytes 为本地文件信息，total 为平台总条数（可能为 None），raw_task 保留任务信息。"""
+    saved: str = ""
+    bytes: int = 0
+    total: object = None
+    raw_task: dict = field(default_factory=dict)
+
+
+@dataclass
+class UpdateResult:
+    """updateWorkItems 结果：succeeded/failed 为已规范化列表，raw 保留原始 bo。"""
+    succeeded: list = field(default_factory=list)
+    failed: list = field(default_factory=list)
+    raw: dict = field(default_factory=dict)
+
+
 def _headers(cfg, auth, extra=None):
     h = dict(auth.get("headers", {}))
     h.setdefault("Accept", "application/json, text/plain, */*")
@@ -58,17 +93,18 @@ def _check_code(data):
 
 
 def validate(cfg, auth, file_path):
-    """导入数据校验（check-excel），只读安全。返回 bo。"""
+    """导入数据校验（check-excel），只读安全。返回 ValidateResult。"""
     with open(file_path, "rb") as f:
         content = f.read()
     files = {"file": (os.path.basename(file_path), content, MIME_XLSX)}
     url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/check-excel"
     data = _check_code(net.post_multipart(url, _headers(cfg, auth), files=files, timeout=120))
-    return data.get("bo", {})
+    bo = data.get("bo", {}) or {}
+    return ValidateResult(message=str(bo.get("successMsg") or bo.get("errMsg") or ""), raw=bo)
 
 
 def import_items(cfg, auth, file_path, team_id=None):
-    """导入工作项（importExcel）。team_id 缺省用配置。返回 taskInfo。"""
+    """导入工作项（importExcel）。team_id 缺省用配置。返回 ImportResult。"""
     team_id = team_id or cfg.get("team_id") or ""
     with open(file_path, "rb") as f:
         content = f.read()
@@ -80,8 +116,14 @@ def import_items(cfg, auth, file_path, team_id=None):
     files = {"file": (os.path.basename(file_path), content, MIME_XLSX)}
     url = f"{cfg['base_url']}/wim/workspaces/{cfg['workspace']}/work_items/importExcel"
     data = _check_code(net.post_multipart(url, _headers(cfg, auth), fields=fields, files=files, timeout=300))
-    bo = data.get("bo", {})
-    return bo.get("taskInfo", bo)
+    bo = data.get("bo", {}) or {}
+    task = bo.get("taskInfo") or bo
+    ids = import_ids(task)
+    return ImportResult(ids=ids,
+                        succeeded=int(task.get("succeededItemsSize", len(ids)) or 0),
+                        failed=int(task.get("failedItemsSize", 0) or 0),
+                        report_url=str(task.get("fileUrl", "") or ""),
+                        raw=task)
 
 
 def import_ids(bo):
@@ -181,7 +223,9 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
         _os.makedirs(d, exist_ok=True)
     with open(out_path, "wb") as f:
         f.write(content)
-    return {"task": task, "saved": out_path, "bytes": len(content)}
+    return ExportResult(saved=out_path, bytes=len(content),
+                        total=task.get("totalSize"), raw_task=task)
+
 
 def download(url, auth=None, headers=None, cfg=None):
     """下载平台文件，返回内容。默认仅允许 https + file_url_hosts 白名单主机。"""
@@ -277,4 +321,6 @@ def update_work_items_state(cfg, auth, ids, status):
         "fields": [_state_field(cfg, status)],
     }
     data = _check_code(net.request_json("PUT", url, headers, payload=body, timeout=120))
-    return data.get("bo", {})
+    bo = data.get("bo", {}) or {}
+    return UpdateResult(succeeded=list(bo.get("succeededItems", []) or []),
+                        failed=list(bo.get("failedItems", []) or []), raw=bo)

@@ -136,12 +136,13 @@ def test_import_confirm_flow():
 
     def fake_validate(cfg, a, f):
         calls["validate"] += 1
-        return {"successMsg": "预计新增 1 条"}
+        return api.ValidateResult(message="预计新增 1 条", raw={"successMsg": "预计新增 1 条"})
 
     def fake_import(cfg, a, f, team_id=None):
         calls["import"] += 1
-        return {"succeededItemsSize": 1, "failedItemsSize": 0,
-                "taskInfo": {"succeededItems": [{"data": {"1": "P22TEST0000001-6864"}}]}}
+        return api.ImportResult(
+            ids=["P22TEST0000001-6864"], succeeded=1, failed=0, report_url="",
+            raw={"taskInfo": {"succeededItems": [{"data": {"1": "P22TEST0000001-6864"}}]}})
 
     cli._auth = lambda args: {"headers": {}}
     api.validate = fake_validate
@@ -291,7 +292,7 @@ def test_update_status_requires_confirm():
 
     def fake_update(cfg, a, ids, status):
         calls["update"] += 1
-        return {"succeededItems": [{"id": i} for i in ids], "failedItems": []}
+        return api.UpdateResult(succeeded=[{"id": i} for i in ids], failed=[])
 
     cli._auth = lambda args: {"headers": {}}
     api.update_work_items_state = fake_update
