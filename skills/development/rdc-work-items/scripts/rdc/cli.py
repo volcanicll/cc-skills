@@ -296,6 +296,8 @@ def _resolve_setup_values(args, current):
 
 def cmd_setup_config(args):
     """首次配置向导：把用户提供的平台参数写入全局配置文件（多平台路径）。"""
+    if not sys.stdin.isatty() and not args.no_input:
+        raise SystemExit("非交互环境请使用 --no-input 通过 flags 提供配置值，并加 --yes 确认写入。")
     cfg = config.load_config()
     data = _resolve_setup_values(args, cfg)
     # 可移植性：auth_file 不写入全局配置（每次按本机 user_config_dir 计算）
@@ -312,7 +314,7 @@ def cmd_setup_config(args):
     print("  api_key   :", _mask(data.get("api_key")))
     print("  assignee  :", data.get("assignee_name"), data.get("assignee_emp_no"))
     print("  git_author:", data.get("git_author"))
-    if not args.yes:
+    if not (args.yes or args.no_input):
         ok = input("确认写入？[y/N] ").strip().lower()
         if ok not in ("y", "yes"):
             print("已取消")

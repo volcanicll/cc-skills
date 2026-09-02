@@ -317,7 +317,8 @@ def test_update_status_requires_confirm():
         Args.yes = False
         Args.status = "已归档"
         try:
-            with contextlib.redirect_stderr(io.StringIO()):
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
                 cli.cmd_update_status(Args())
             raise AssertionError("非法状态应中止")
         except SystemExit as e:
@@ -326,6 +327,31 @@ def test_update_status_requires_confirm():
     finally:
         cli._auth, api.update_work_items_state, cli._confirm = (
             orig_auth, orig_update, orig_confirm)
+
+
+def test_setup_config_no_input_noninteractive():
+    """setup-config --no-input 在非交互环境可直接写入全局配置；缺 --no-input 时优雅报错。"""
+    if os.name == "nt":
+        return  # Windows 路径用 %APPDATA%，此处仅覆盖 POSIX
+    tmp = tempfile.mkdtemp(prefix="rdc-setup-")
+    env = dict(os.environ, HOME=tmp)
+    # --no-input（不带 --yes）应成功写入，而不是 EOFError 崩溃
+    r = subprocess.run(
+        [sys.executable, "rdc_workflow", "setup-config", "--no-input",
+         "--workspace", "W1", "--team-id", "T1"],
+        cwd=SCRIPTS, capture_output=True, text=True, timeout=120, env=env)
+    assert r.returncode == 0, r.stderr
+    cfg_path = os.path.join(tmp, ".config", "rdc-work-items.yaml")
+    assert os.path.exists(cfg_path)
+    assert "workspace: W1" in open(cfg_path, encoding="utf-8").read()
+    # 非交互但忘了 --no-input → 明确提示而非 EOFError 堆栈
+    r2 = subprocess.run(
+        [sys.executable, "rdc_workflow", "setup-config", "--workspace", "W2"],
+        cwd=SCRIPTS, capture_output=True, text=True, timeout=120, env=env)
+    assert r2.returncode != 0
+    assert "EOFError" not in r2.stderr
+    out = r2.stdout + r2.stderr
+    assert "--no-input" in out and "--yes" in out
 
 
 if __name__ == "__main__":
