@@ -27,11 +27,15 @@ def test_extract_requires_repos():
 
 
 def _make_repo():
-    """建一个 2 条提交（alice/bob）的临时 git 仓库。"""
-    import shutil
+    """建一个 2 条提交（alice/bob）的临时 git 仓库。
+
+    提交时间固定为 2026-09-01（与测试查询区间 09-01~09-02 对齐），
+    避免因“今天”变化导致提交落在区间外而统计不到。
+    """
     import subprocess
     import tempfile
     repo = tempfile.mkdtemp(prefix="rdc-repo-")
+    when = "2026-09-01T10:00:00 +0800"
     for name, content in (("alice", "1"), ("bob", "2")):
         subprocess.run(["git", "-C", repo, "init", "-q"], check=True)
         subprocess.run(["git", "-C", repo, "config", "user.email", "t@t.t"], check=True)
@@ -40,7 +44,9 @@ def _make_repo():
         with open(fn, "w", encoding="utf-8") as f:
             f.write(content)
         subprocess.run(["git", "-C", repo, "add", "."], check=True)
-        subprocess.run(["git", "-C", repo, "commit", "-qm", f"feat: {name}"], check=True)
+        env = dict(os.environ, GIT_AUTHOR_DATE=when, GIT_COMMITTER_DATE=when)
+        subprocess.run(["git", "-C", repo, "commit", "-qm", f"feat: {name}"],
+                       check=True, env=env)
     return repo
 
 
