@@ -47,7 +47,8 @@ POST {base_url}/wim/workItem/workspaces/{workspace}/export/excel?flap=false
 Content-Type: application/json（必须，net.request_json 自动设置）
 body: filterItems(指派给/状态/创建时间等) + selectItems(8 列) + ...
 ```
-异步返回 `bo.taskInfo.fileUrl`，再 GET 下载。
+异步返回 `bo.taskInfo.fileUrl`，再 GET 下载（下载地址仅允许 `https` 且主机匹配配置的
+`file_url_hosts` 白名单，默认 `.srdcloud.cn`；其余地址拒绝，避免外带 Cookie 或读本地文件）。
 body 已按 2026-09 页面实际成功报文对齐：`workItemTypeKeys=[]`、
 `crossWorkspaceKeyMapping.filter=[]`、按 `System_ChangedDate` 倒序、
 日期过滤用 `System_CreatedDate`（between）。

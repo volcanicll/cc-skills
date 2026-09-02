@@ -473,7 +473,7 @@ def cmd_summary(args):
         print(f"  {it['编号'] or '(新)'} | {it['状态']} | {it['标题']}")
 
 
-def _save_error_report(url, auth_data, out_dir):
+def _save_error_report(url, auth_data, out_dir, cfg):
     """下载平台错误报告并保存为本地 xlsx，返回保存路径。"""
     rpt = api.download(url, auth_data)
     path = os.path.join(out_dir, "错误报告.xlsx")
@@ -511,7 +511,7 @@ def cmd_import(args):
         url = task.get("fileUrl", "")
         if url:
             out_dir = os.path.dirname(os.path.abspath(args.file)) or "."
-            report, text = _save_error_report(url, auth_data, out_dir)
+            report, text = _save_error_report(url, auth_data, out_dir, cfg)
             print(f"⚠ 失败 {failed_n} 条，错误报告已保存：{report}")
             print("   报告前 500 字：", text[:500])
         else:
@@ -584,7 +584,7 @@ def cmd_flow(args):
             print("❌ 创建导入失败：", json.dumps(task, ensure_ascii=False)[:800])
             url = task.get("fileUrl", "")
             if url:
-                report, _ = _save_error_report(url, _auth(args), args.out_dir)
+                report, _ = _save_error_report(url, _auth(args), args.out_dir, cfg)
                 print(f"   错误报告已保存：{report}")
             return
         ids = api.import_ids(task)

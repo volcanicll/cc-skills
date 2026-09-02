@@ -114,7 +114,7 @@ metadata:
 `base_url / workspace / project_id / team_id / tenant_id / api_key / assignee_emp_no / assignee_name /
 team_name / domain / work_item_type / task_type / status_flow / initial_status / wic_base_url /
 wic_version / work_item_type_key / state_field_id / chrome_debug_port / chrome_profile_dir /
-browser / chrome_path / auth_wait_seconds / auth_max_age_hours / git_author / repos /
+browser / chrome_path / auth_wait_seconds / auth_max_age_hours / file_url_hosts / git_author / repos /
 excel_columns / auth_file`。
 
 ## 目录结构

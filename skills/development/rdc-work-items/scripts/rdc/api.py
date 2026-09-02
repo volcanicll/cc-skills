@@ -1,11 +1,41 @@
 # -*- coding: utf-8 -*-
 """研发云工作项接口封装：check-excel / importExcel / export excel / updateWorkItems（纯标准库）。"""
 import os
+import urllib.parse
 
 from . import net
 
 MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DEFAULT_WIC_BASE = "https://www.srdcloud.cn/zte-plm-wic-api"
+# 平台返回的下载地址（fileUrl）主机白名单：点开头表示后缀匹配。
+# 防止响应被污染时把会话 Cookie 外带或经 file:// 读取本地文件（可经配置 file_url_hosts 扩展）。
+DEFAULT_FILE_URL_HOSTS = (".srdcloud.cn",)
+
+
+def _file_url_hosts(cfg=None):
+    hosts = (cfg or {}).get("file_url_hosts") or DEFAULT_FILE_URL_HOSTS
+    if isinstance(hosts, str):
+        hosts = [h.strip() for h in hosts.split(",") if h.strip()]
+    return tuple(hosts)
+
+
+def assert_safe_file_url(url, hosts=DEFAULT_FILE_URL_HOSTS):
+    """校验下载地址：仅 https 且主机匹配白名单，否则拒绝（不发起请求、不附带 Cookie）。"""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
+        raise RdcError(f"下载地址非 https，已拒绝：{url[:80]}")
+    host = (parsed.hostname or "").lower()
+    ok = False
+    for h in hosts:
+        base = str(h).strip().lstrip(".").lower()
+        if not base:
+            continue
+        if host == base or host.endswith("." + base):
+            ok = True
+            break
+    if not ok:
+        raise RdcError(f"下载地址主机 {host or '(空)'} 不在白名单内，已拒绝")
+    return url
 
 
 class RdcError(Exception):
@@ -143,6 +173,7 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
         raise RdcError(f"导出任务未完成：{task}")
     if not file_url:
         raise RdcError(f"导出未返回文件地址：{task}")
+    assert_safe_file_url(file_url, _file_url_hosts(cfg))
     content = net.get_bytes(file_url, headers={"Cookie": auth.get("cookie_header", "")}, timeout=300)
     import os as _os
     d = _os.path.dirname(_os.path.abspath(out_path))
@@ -152,8 +183,9 @@ def export_excel(cfg, auth, out_path, since=None, until=None, assignee=None,
         f.write(content)
     return {"task": task, "saved": out_path, "bytes": len(content)}
 
-def download(url, auth=None, headers=None):
-    """下载平台文件，返回内容。"""
+def download(url, auth=None, headers=None, cfg=None):
+    """下载平台文件，返回内容。默认仅允许 https + file_url_hosts 白名单主机。"""
+    assert_safe_file_url(url, _file_url_hosts(cfg))
     h = headers or {}
     if auth and auth.get("cookie_header"):
         h["Cookie"] = auth["cookie_header"]

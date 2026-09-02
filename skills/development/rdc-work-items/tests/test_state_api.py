@@ -117,6 +117,35 @@ def test_import_ids():
     assert api.import_ids({}) == []
 
 
+def test_safe_file_url_allowlist():
+    """fileUrl 下载白名单：仅 https + 白名单主机，其余一律拒绝。"""
+    assert api.assert_safe_file_url("https://www.srdcloud.cn/a.xlsx") is not None
+    assert api.assert_safe_file_url("https://srdcloud.cn/a.xlsx") is not None
+    assert api.assert_safe_file_url("https://oss.srdcloud.cn/a.xlsx") is not None
+    for bad in ("http://www.srdcloud.cn/a.xlsx",
+                "file:///etc/passwd",
+                "https://evil.example.com/a.xlsx",
+                "ftp://www.srdcloud.cn/a.xlsx"):
+        try:
+            api.assert_safe_file_url(bad)
+            raise AssertionError(f"应拒绝 {bad}")
+        except api.RdcError:
+            pass
+    # 自定义白名单可扩展
+    assert api.assert_safe_file_url("https://cdn.mycorp.com/a.xlsx",
+                                    hosts=[".mycorp.com"]) is not None
+
+
+def test_download_rejects_unsafe_url():
+    """download 对非白名单地址在发起请求前拒绝（含 file://）。"""
+    for bad in ("file:///etc/passwd", "https://evil.example.com/a.xlsx"):
+        try:
+            api.download(bad, auth={"cookie_header": "a=b"})
+            raise AssertionError(f"应拒绝 {bad}")
+        except api.RdcError:
+            pass
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
