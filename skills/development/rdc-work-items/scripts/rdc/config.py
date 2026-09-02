@@ -7,7 +7,7 @@
 import json
 import os
 
-from . import yamlio
+from . import schema, yamlio
 
 APP_NAME = "rdc-work-items"
 
@@ -47,7 +47,6 @@ DEFAULTS = {
     "assignee_emp_no": "YOUR_EMP_NO",   # x-emp-no 头 + 指派给
     "assignee_name": "YOUR_NAME",
     "team_name": "YOUR_TEAM_NAME",
-    "domain": "前端开发",                  # 领域列
     "work_item_type": "任务",
     "task_type": "开发",
     # ---- 状态流转（按顺序执行，不可跳级）----
@@ -70,10 +69,8 @@ DEFAULTS = {
     "git_since": "",                       # 默认空=按参数传入
     "git_until": "",
     "repos": [],                           # 待扫描的 git 仓库列表（绝对路径）
-    # ---- Excel 模板列 ----
-    "excel_columns": ["编号", "标题", "工作项类型", "状态", "指派给", "更新时间",
-                      "计划开始时间", "实际完成时间", "初始估计", "创建人", "创建时间",
-                      "团队", "详细说明", "任务类型"],
+    # ---- Excel 模板列（单一事实源见 rdc/schema.py；仅支持在标准列内增删/排序）----
+    "excel_columns": list(schema.EXPORT_COLUMNS),
 }
 
 CONFIG_FILES = ["rdc-config.yaml", "rdc-config.yml", "rdc-config.json",

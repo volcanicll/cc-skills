@@ -108,6 +108,13 @@ def test_write_global_config_private_mode():
     assert mode == 0o600, f"期望 0600，实际 {oct(mode)}"
 
 
+def test_default_columns_from_schema():
+    """默认 excel_columns 与 schema 单一事实源一致，且无死键 domain。"""
+    from rdc import schema
+    assert config.DEFAULTS["excel_columns"] == list(schema.EXPORT_COLUMNS)
+    assert "domain" not in config.DEFAULTS
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

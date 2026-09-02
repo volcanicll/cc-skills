@@ -55,6 +55,8 @@ python3 scripts/rdc_workflow --config rdc-config.yaml stats \
 ```bash
 python3 scripts/rdc_workflow --config rdc-config.yaml build-excel -i work_items.json -o 营销域8月-示例.xlsx
 ```
+> Excel 列遵循平台标准 14 列（`scripts/rdc/schema.py` 单一事实源）；`excel_columns`
+> 仅在标准列内增删/排序，新增非标准列会报错，导入文件由 `prepare` 按标准列处理。
 
 ### 3. 导入（创建）
 ```bash

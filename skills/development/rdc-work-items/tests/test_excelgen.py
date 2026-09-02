@@ -63,6 +63,32 @@ def test_build_ok():
     assert r["items"] == 1 and os.path.exists(out)
 
 
+def test_custom_unknown_column_rejected():
+    """excel_columns 含非标准列时应在生成前报错，且不产生文件。"""
+    from rdc import schema
+    out = os.path.join(tempfile.mkdtemp(), "bad.xlsx")
+    cfg = dict(CFG, excel_columns=["编号", "标题", "领域"])
+    try:
+        excelgen.build(cfg, _items(8), out)
+        raise AssertionError("非标准列应报错")
+    except ValueError as e:
+        assert "非标准列" in str(e)
+        assert not os.path.exists(out)
+    assert "领域" not in schema.EXPORT_COLUMNS
+
+
+def test_custom_subset_columns_ok():
+    """excel_columns 在标准列内取子集/排序应正常生成。"""
+    out = os.path.join(tempfile.mkdtemp(), "sub.xlsx")
+    cfg = dict(CFG, excel_columns=["标题", "状态", "初始估计"])
+    r = excelgen.build(cfg, _items(8), out)
+    assert r["items"] == 1
+    from rdc import xlsx
+    headers, rows = xlsx.read_table(out)
+    assert headers == ["标题", "状态", "初始估计"], headers
+    assert rows[0][0] == "工作项A" and rows[0][2] == "8"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -268,7 +268,7 @@ def _resolve_setup_values(args, current):
         "team_id": args.team_id, "tenant_id": args.tenant_id,
         "api_key": args.api_key, "assignee_emp_no": args.assignee_emp_no,
         "assignee_name": args.assignee_name, "team_name": args.team_name,
-        "git_author": args.git_author, "domain": args.domain,
+        "git_author": args.git_author,
         "work_item_type": args.work_item_type, "task_type": args.task_type,
         "chrome_debug_port": args.chrome_debug_port,
     }
@@ -647,7 +647,6 @@ def main():
     pc.add_argument("--assignee-emp-no", default=None)
     pc.add_argument("--assignee-name", default=None)
     pc.add_argument("--team-name", default=None)
-    pc.add_argument("--domain", default=None)
     pc.add_argument("--work-item-type", default=None)
     pc.add_argument("--task-type", default=None)
     pc.add_argument("--git-author", default=None)

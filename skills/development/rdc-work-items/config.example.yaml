@@ -18,7 +18,6 @@ api_key: "YOUR_API_KEY"   # x-api-key（check-excel 接口需要）
 assignee_emp_no: "YOUR_EMP_NO"   # 员工号（x-emp-no 头 + 指派给值）
 assignee_name: "YOUR_NAME"
 team_name: "YOUR_TEAM_NAME"
-domain: "前端开发"                  # 领域列
 work_item_type: "任务"
 task_type: "开发"
 
@@ -67,7 +66,9 @@ repos:                              # 待扫描的 git 仓库（绝对路径）
   # - "/path/to/your/repo-a"
   # - "/path/to/your/repo-b"
 
-# ---- Excel 模板列（导出结果格式，可自定义）----
+# ---- Excel 模板列（导出结果格式）----
+# 默认使用平台标准 14 列（见 scripts/rdc/schema.py）。可自定义：仅在标准列内增删/排序，
+# 例如只保留部分列或调整顺序；新增非标准列会报错（生成/导入均以标准列集为准）。
 # excel_columns:
 #   - 编号
 #   - 标题

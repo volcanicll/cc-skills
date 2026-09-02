@@ -4,11 +4,10 @@
 纯标准库：xlsx 由内置 xlsx.py（zipfile+XML）读写，不依赖 openpyxl。
 状态流转不再走 Excel 导入（见 api.update_work_items_state）。
 """
-from . import xlsx
+from . import schema, xlsx
 
-HEADER_ORDER = ["编号", "标题", "工作项类型", "状态", "指派给", "更新时间",
-                "计划开始时间", "实际完成时间", "初始估计", "创建人", "创建时间",
-                "团队", "详细说明", "任务类型"]
+# 与 rdc/schema.py 保持同源（单一事实源），勿单独手抄
+HEADER_ORDER = list(schema.EXPORT_COLUMNS)
 
 
 def _read_rows(path):
@@ -64,12 +63,17 @@ def prepare(src, out, status="新建", keep_ids=False, keep_updated_time=False):
     # 仅保留在标准导出结果中的列
     keep = [h for h in HEADER_ORDER if h in cols]
     missing = [h for h in HEADER_ORDER if h not in cols]
+    dropped_unknown = [h for h in header if h not in HEADER_ORDER]
     warnings = []
     if missing:
         warnings.append(
             f"源文件缺少标准列：{', '.join(missing)}（已忽略，确认是否为平台导出格式）")
+    if dropped_unknown:
+        warnings.append(
+            f"源文件含非标准列，将被忽略：{', '.join(dropped_unknown)}"
+            "（导入路径仅支持平台标准列，如确需新增请先在平台确认可导入）")
     if not keep_updated_time:
-        for drop in ("更新时间", "创建人", "创建时间"):
+        for drop in schema.IMPORT_UNSUPPORTED:
             if drop in keep:
                 keep.remove(drop)
 

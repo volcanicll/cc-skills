@@ -5,7 +5,7 @@
 """
 import json
 
-from . import xlsx
+from . import schema, xlsx
 
 # 单工作项工时范围（小时）：最小 1，最大不超过 24
 MIN_HOURS = 1
@@ -39,10 +39,12 @@ def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
     status = status or cfg.get("initial_status", "新建")
     updated_at = updated_at or ""
     created_at = created_at or ""
-    columns = cfg.get("excel_columns", [
-        "编号", "标题", "工作项类型", "状态", "指派给", "更新时间",
-        "计划开始时间", "实际完成时间", "初始估计", "创建人", "创建时间",
-        "团队", "详细说明", "任务类型"])
+    columns = list(cfg.get("excel_columns") or schema.EXPORT_COLUMNS)
+    unknown = [c for c in columns if c not in schema.EXPORT_COLUMNS]
+    if unknown:
+        raise ValueError(
+            "excel_columns 包含非标准列：" + "、".join(str(u) for u in unknown)
+            + "。仅支持在标准列内增删/排序（导入路径按平台标准列处理，自定义列无法导入）")
 
     rows = []
     for it in items:
@@ -64,8 +66,10 @@ def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
         }
         rows.append([vals.get(h, "") for h in columns])
 
-    widths = {"A": 24, "B": 46, "C": 12, "D": 10, "E": 22, "F": 20, "G": 22,
-              "H": 22, "I": 12, "J": 22, "K": 20, "L": 32, "M": 90, "N": 12}
+    widths = {
+        chr(65 + i): (schema.WIDE_WIDTH if h in schema.WIDE_COLUMNS else schema.DEFAULT_WIDTH)
+        for i, h in enumerate(columns)
+    }
     xlsx.write_table(out_path, columns, rows, sheet_name="导出结果", widths=widths)
     return {"items": len(items), "status": status, "out": out_path}
 

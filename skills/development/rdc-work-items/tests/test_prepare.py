@@ -35,6 +35,15 @@ def test_prepare_full_columns_no_warning():
     assert "编号" in r["columns"] and "更新时间" not in r["columns"]
 
 
+def test_prepare_drops_unknown_columns_with_warning():
+    """源文件含非标准列时：警告并丢弃，不静默带入导入文件。"""
+    cols = ["编号", "标题", "状态", "领域", "昵称"]
+    src = _make_src(cols, [["", "工作项A", "新建", "前端", "昵称A"]])
+    r = prepare.prepare(src, os.path.join(os.path.dirname(src), "out.xlsx"), status="新建")
+    assert any("非标准列" in w for w in r["warnings"])
+    assert "领域" not in r["columns"] and "昵称" not in r["columns"]
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
