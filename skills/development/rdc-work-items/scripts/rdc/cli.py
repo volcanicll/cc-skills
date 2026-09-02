@@ -2,21 +2,35 @@
 """研发云工作项自动化 CLI（配置驱动，所有环境变量可在 rdc-config.yaml 自定义）
 
 纯标准库运行（无需 pip 安装依赖）。状态流转走 updateWorkItems/edit 接口。
+每个环节（生成/导入/导出/流转）都可独立使用，按需只执行一步即可；`flow` 仅是把几步
+串起来的一键入口（可选）。Windows 用 `py -3 scripts/rdc_workflow` 代替 `python3 scripts/rdc_workflow`。
 
 用法：
+  # 一次性准备
   python -m rdc.cli setup-config                       # 首次配置向导（写全局配置）
   python -m rdc.cli doctor                             # 环境自检（配置/鉴权/调试端口/git 仓库）
   python -m rdc.cli --config rdc-config.yaml auth      # 提取鉴权（自动发现/自动启动浏览器）
   python -m rdc.cli auth --manual                      # 手动粘贴 Cookie 兜底
+
+  # 单步 1：只生成工作量 Excel（离线，无需平台/登录）
   python -m rdc.cli stats --since 2026-08-01 --until 2026-08-31 -o commits.json
   python -m rdc.cli build-excel -i work_items.json -o 营销域8月-示例.xlsx
+
+  # 单步 2：只导入/创建（工作量 Excel 可直接 import，自动移除平台不支持列；--yes 跳过确认）
+  python -m rdc.cli import 营销域8月-示例.xlsx --yes --ids-out 8月-ids.json
+  # 分步细控导入（prepare 改状态/保留编号等）
   python -m rdc.cli prepare 营销域8月-示例.xlsx -o 导入-新建.xlsx --status 新建
   python -m rdc.cli validate 导入-新建.xlsx            # 只读校验（导入前建议先跑）
-  python -m rdc.cli import 导入-新建.xlsx --yes         # 导入（默认需确认，--yes 跳过）
+
+  # 单步 3：只导出工作项
   python -m rdc.cli export -o 导出.xlsx --since 2026-08-01 --until 2026-08-31
-  python -m rdc.cli update-status 导出.xlsx --status 处理中 --dry-run   # 接口流转（先 dry-run）
-  python -m rdc.cli update-status --ids P22TEST0000001-6864 --status 已完成
-  python -m rdc.cli flow --src 营销域8月-示例.xlsx --mode full    # 全流程（默认 dry-run，--yes 执行）
+
+  # 单步 4：只流转状态（读含编号 Excel / import 保存的编号文件 / --ids）
+  python -m rdc.cli update-status 导出.xlsx --status 处理中 --dry-run
+  python -m rdc.cli update-status --ids-file 8月-ids.json --status 处理中 --yes
+
+  # 一键全流程（可选）：full=导入+逐级流转；import=只创建；status=只流转/续跑
+  python -m rdc.cli flow --src 营销域8月-示例.xlsx --mode full    # 默认 dry-run，--yes 执行
   python -m rdc.cli flow --mode import --yes           # 只创建（编号保存到 out-dir/ids.json）
   python -m rdc.cli flow --mode status --yes           # 只流转（读取 out-dir/ids.json 或 --ids）
   python -m rdc.cli --version
@@ -419,14 +433,36 @@ def cmd_prepare(args):
     print(f"   列：{r['columns']}")
 
 
+def _read_ids_file(path):
+    """读取编号 JSON 文件（import --ids-out / flow out-dir/ids.json 产物）。
+
+    兼容 dict（含 ids 数组，含 status_flow 快照）或纯数组两种形态。
+    """
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    raw = data.get("ids", data) if isinstance(data, dict) else data
+    if not isinstance(raw, list):
+        raise SystemExit(f"{path} 不是有效的编号文件（应为数组或含 ids 数组的对象）")
+    return [str(i).strip() for i in raw if str(i).strip()]
+
+
 def cmd_update_status(args):
-    """通过 updateWorkItems/edit 接口流转状态（不再走 Excel 导入）。"""
+    """通过 updateWorkItems/edit 接口流转状态（不再走 Excel 导入）。
+
+    工作项编号来源三选一：含「编号」列的 Excel(file)、JSON 编号文件(--ids-file)、
+    逗号分隔编号(--ids)。
+    """
     cfg = _cfg(args)
-    if args.ids:
+    ids_file = getattr(args, "ids_file", None)
+    if ids_file and (args.ids or args.file):
+        raise SystemExit("--ids-file 与 file/--ids 只能二选一")
+    if ids_file:
+        ids = _read_ids_file(ids_file)
+    elif args.ids:
         ids = [i.strip() for i in args.ids.split(",") if i.strip()]
     else:
         if not args.file:
-            raise SystemExit("缺少工作项来源：需提供 file（读取编号列）或 --ids")
+            raise SystemExit("缺少工作项来源：需提供 file（读取编号列）、--ids-file 或 --ids")
         ids = prepare.collect_ids(args.file)
     if not ids:
         raise SystemExit("未获取到任何工作项编号")
@@ -472,8 +508,19 @@ def cmd_import(args):
     _ensure_auth(args, cfg)
     cfg = _ensure_config(args, cfg, PLATFORM_FIELDS, "导入工作项")
     auth_data = _auth(args)
+    file_path = args.file
+    # 工作量 Excel / 平台导出结果可直接导入创建：含平台不支持列且编号全空时自动转换为导入文件
+    if prepare.needs_import_prep(file_path):
+        base, ext = os.path.splitext(file_path)
+        prep_path = f"{base}-可导入{ext}"
+        r = prepare.strip_unsupported(file_path, prep_path)
+        for w in r.get("warnings", []):
+            print("⚠", w)
+        print(f"ℹ 输入含平台不支持列（{'/'.join(prepare.schema.IMPORT_UNSUPPORTED)}）且编号为空，"
+              f"已自动转换为导入文件：{prep_path}")
+        file_path = prep_path
     # 导入前先只读校验，打印预计新增/更新
-    res = api.validate(cfg, auth_data, args.file)
+    res = api.validate(cfg, auth_data, file_path)
     print(f"校验：{res.message or '校验通过'}")
     if args.verbose:
         print(json.dumps(res.raw, ensure_ascii=False, indent=2))
@@ -483,12 +530,17 @@ def cmd_import(args):
         if not _confirm("确认导入到研发云（将创建/更新工作项）？"):
             print("已取消")
             return
-    imp = api.import_items(cfg, auth_data, args.file, team_id=args.team_id)
+    imp = api.import_items(cfg, auth_data, file_path, team_id=args.team_id)
     ids = imp.ids
     print(f"✅ 导入完成：成功 {imp.succeeded} 条，失败 {imp.failed} 条")
     if ids:
         shown = ", ".join(ids[:5]) + ("…" if len(ids) > 5 else "")
         print(f"   工作项编号：{shown}")
+        ids_out = getattr(args, "ids_out", None)
+        if ids_out:
+            _dump_ids_state(ids_out, ids, cfg.get("status_flow",
+                                                  ["新建", "处理中", "已完成", "已关闭"]))
+            print(f"   编号已保存到 {ids_out}（后续 update-status --ids-file 可续跑流转）")
     if imp.failed > 0:
         url = imp.report_url
         if url:
@@ -512,17 +564,23 @@ def cmd_export(args):
     print(f"✅ 已导出 {r.saved}（{r.bytes} 字节，共 {total} 条）")
 
 
-def _save_flow_ids(out_dir, ids, flow, reached=0):
-    """保存续跑状态：ids + 状态流快照 + 已推进到的状态下标（reached 指向 flow 内下标）。
+def _dump_ids_state(path, ids, flow, reached=0):
+    """保存编号/续跑状态：ids + 状态流快照 + 已推进到的状态下标（reached 指向 flow 内下标）。
 
     每级状态流转成功后都会更新 reached，使 flow --mode status 断点续跑不会重放已过的状态。
+    import --ids-out 复用同一格式，使单步导入的编号也能被 update-status --ids-file 续跑。
     """
-    path = os.path.join(out_dir, "ids.json")
     data = {"ids": ids, "status_flow": flow, "reached": int(reached or 0),
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     return path
+
+
+def _save_flow_ids(out_dir, ids, flow, reached=0):
+    """保存续跑状态到 <out_dir>/ids.json（兼容包装，见 _dump_ids_state）。"""
+    path = os.path.join(out_dir, "ids.json")
+    return _dump_ids_state(path, ids, flow, reached=reached)
 
 
 def _load_flow_state(out_dir):
@@ -726,7 +784,9 @@ def main():
     pss = add(sub, "update-status", help="通过接口批量流转工作项状态")
     pss.add_argument("file", nargs="?", default=None, help="xlsx 文件（读取编号列）")
     pss.add_argument("--status", required=True, help="目标状态（须按 status_flow 逐级流转）")
-    pss.add_argument("--ids", default=None, help="逗号分隔的工作项编号，与 file 二选一")
+    pss.add_argument("--ids", default=None, help="逗号分隔的工作项编号，与 file/--ids-file 二选一")
+    pss.add_argument("--ids-file", default=None,
+                     help="读取编号的 JSON 文件（import --ids-out 或 flow out-dir/ids.json 产物，取 ids 数组）")
     pss.add_argument("--dry-run", action="store_true", help="只打印将执行的操作，不调用接口")
     pss.add_argument("--yes", action="store_true", help="跳过状态流转确认（非交互环境需加 --yes）")
     pss.set_defaults(func=cmd_update_status)
@@ -738,6 +798,8 @@ def main():
     pi = add(sub, "import", help="导入工作项（默认需确认，--yes 跳过）")
     pi.add_argument("file")
     pi.add_argument("--team-id", default=None)
+    pi.add_argument("--ids-out", default=None,
+                    help="导入成功后把工作项编号保存到该 JSON 文件（可用 update-status --ids-file 续跑流转）")
     pi.add_argument("--yes", action="store_true", help="跳过导入确认")
     pi.add_argument("--verbose", action="store_true", help="打印完整平台返回")
     pi.set_defaults(func=cmd_import)

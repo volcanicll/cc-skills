@@ -95,3 +95,69 @@ def prepare(src, out, status="新建", keep_ids=False, keep_updated_time=False):
     xlsx.write_table(out, keep, out_rows, sheet_name="导出结果", widths=widths)
     return {"items": len(out_rows), "status": status, "columns": keep,
             "warnings": warnings, "out": out}
+
+
+def needs_import_prep(path):
+    """判断「导出结果」文件是否需要自动转为可导入文件（用于创建新项）。
+
+    规则：文件含平台不支持列（更新时间/创建人/创建时间）且「编号」列全空时返回 True——
+    即 build-excel 生成的工作量 Excel 或平台导出后尚未创建的行，import 可直接自动转换；
+    已含编号（更新已有项）或已不含不支持列（已 prepare 过）的文件返回 False，保持原样导入。
+    """
+    try:
+        header, rows = _read_rows(path)
+    except FileNotFoundError:
+        return False  # 文件不存在等留待后续导入环节报出明确错误
+    if not any(c in header for c in schema.IMPORT_UNSUPPORTED):
+        return False
+    if "编号" not in header:
+        return False
+    id_i = header.index("编号")
+    for r in rows:
+        if not any(r):
+            continue
+        v = r[id_i] if id_i < len(r) else ""
+        if str(v).strip():
+            return False  # 含编号 → 更新已有项，不自动转换
+    return True
+
+
+def strip_unsupported(src, out, status=None):
+    """把「导出结果」文件转为可导入文件：只移除平台不支持列与非标准列。
+
+    与 prepare() 的区别：保留编号与状态等列的原值（status 传入时才改写状态），
+    适合 import 对创建型文件（编号为空）的自动转换；也可用于更新前的轻量清理
+    （此时编号会被保留，配合平台逐行判断新增/更新）。
+    返回 {"items", "status", "columns", "warnings", "out"}。
+    """
+    header, rows = _read_rows(src)
+    cols = {h: i for i, h in enumerate(header)}
+    keep = [h for h in HEADER_ORDER
+            if h in cols and h not in schema.IMPORT_UNSUPPORTED]
+    missing = [h for h in HEADER_ORDER if h not in cols]
+    dropped_unknown = [h for h in header if h not in HEADER_ORDER]
+    warnings = []
+    if missing:
+        warnings.append(
+            f"源文件缺少标准列：{', '.join(missing)}（已忽略，确认是否为平台导出格式）")
+    if dropped_unknown:
+        warnings.append(
+            f"源文件含非标准列，将被忽略：{', '.join(dropped_unknown)}"
+            "（导入路径仅支持平台标准列，如确需新增请先在平台确认可导入）")
+
+    out_rows = []
+    for r in rows:
+        if not any(r):
+            continue
+        row = []
+        for h in keep:
+            val = r[cols[h]] if h in cols else None
+            if status is not None and h == "状态":
+                val = status
+            row.append(val)
+        out_rows.append(row)
+
+    widths = {chr(65 + j): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
+    xlsx.write_table(out, keep, out_rows, sheet_name="导出结果", widths=widths)
+    return {"items": len(out_rows), "status": status, "columns": keep,
+            "warnings": warnings, "out": out}

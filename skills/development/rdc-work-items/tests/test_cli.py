@@ -67,7 +67,7 @@ def test_no_third_party_imports():
 def test_version_flag():
     r = _run("--version", cwd=SCRIPTS)
     assert r.returncode == 0
-    assert "2.3.0" in r.stdout
+    assert "2.4.0" in r.stdout
 
 
 def test_update_status_dry_run():
@@ -376,6 +376,142 @@ def test_flow_resume_state_helpers():
         assert "不一致" in str(e)
     # 无续跑文件 → (None, 0)
     assert cli._resume_from_state(os.path.join(tmp, "empty"), flow) == (None, 0)
+
+
+def test_import_auto_prep_and_ids_out():
+    """单步导入：工作量 Excel 自动转导入文件（去掉平台不支持列），成功后编号落盘供续跑。"""
+    sys.path.insert(0, SCRIPTS)
+    import contextlib
+    import io
+    from rdc import api, cli, excelgen, prepare
+
+    tmp = tempfile.mkdtemp(prefix="rdc-auto-")
+    auth_path = os.path.join(tmp, "auth.json")
+    with open(auth_path, "w", encoding="utf-8") as f:
+        json.dump({"headers": {}, "fetched_at": "2026-09-02 10:00:00"}, f)
+    cfg_path = os.path.join(tmp, "rdc-config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(
+            f"auth_file: {auth_path}\n"
+            "workspace: P22TEST0000001\nproject_id: P\nteam_id: T\n"
+            "tenant_id: 20001\napi_key: K\nassignee_emp_no: E\n"
+            "assignee_name: N\nteam_name: M\n")
+
+    # 生成工作量 Excel（含平台不支持列：更新时间/创建人/创建时间）
+    src = os.path.join(tmp, "8月.xlsx")
+    excelgen.build({"initial_status": "新建", "work_item_type": "任务", "task_type": "开发",
+                    "assignee_name": "N", "assignee_emp_no": "E", "team_name": "M"},
+                   [{"title": "工作项A", "hours": 8}], src)
+    assert prepare.needs_import_prep(src) is True
+
+    ids_json = os.path.join(tmp, "ids.json")
+    called = {"validate": 0, "import": 0, "file": None}
+    orig_validate, orig_import, orig_confirm = api.validate, api.import_items, cli._confirm
+
+    def fake_validate(cfg, a, f):
+        called["validate"] += 1
+        header, _rows = prepare._read_rows(f)
+        assert "更新时间" not in header and "创建人" not in header
+        return api.ValidateResult(message="预计新增 1 条", raw={})
+
+    def fake_import(cfg, a, f, team_id=None):
+        called["import"] += 1
+        called["file"] = f
+        return api.ImportResult(ids=["P22TEST0000001-6864"], succeeded=1, failed=0,
+                                report_url="", raw={})
+
+    class Args:
+        file = src
+        yes = True
+        verbose = False
+        team_id = None
+        ids_out = ids_json
+        config = cfg_path
+
+    cli._auth = lambda args: {"headers": {}}
+    cli._confirm = lambda q, default=False: True
+    api.validate, api.import_items = fake_validate, fake_import
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            cli.cmd_import(Args())
+        assert called["validate"] == 1 and called["import"] == 1
+        # 传给平台的是去掉不支持列后的文件
+        header, _rows = prepare._read_rows(called["file"])
+        assert "编号" in header and "更新时间" not in header
+        # ids 文件已落盘，格式与 flow ids.json 一致
+        data = json.load(open(ids_json, encoding="utf-8"))
+        assert data["ids"] == ["P22TEST0000001-6864"]
+        assert data["status_flow"] == ["新建", "处理中", "已完成", "已关闭"]
+    finally:
+        api.validate, api.import_items, cli._confirm = (
+            orig_validate, orig_import, orig_confirm)
+
+
+def test_import_no_auto_prep_for_update_file():
+    """含编号的导出文件不自动转换（保留编号=更新已有项）。"""
+    sys.path.insert(0, SCRIPTS)
+    from rdc import prepare, schema, xlsx
+    tmp = tempfile.mkdtemp(prefix="rdc-upd-")
+    src = os.path.join(tmp, "export.xlsx")
+    cols = list(schema.EXPORT_COLUMNS)
+    rows = [["P22TEST0000001-6864", "T", "任务", "处理中", "N E", "", "", "", "8",
+             "", "", "M", "d", "开发"]]
+    xlsx.write_table(src, cols, rows, sheet_name="导出结果")
+    assert prepare.needs_import_prep(src) is False
+
+
+def test_update_status_ids_file_dry_run():
+    """update-status --ids-file：读取 import --ids-out / flow ids.json 的编号文件。"""
+    sys.path.insert(0, SCRIPTS)
+    import contextlib
+    import io
+    from rdc import cli
+    tmp = tempfile.mkdtemp(prefix="rdc-idsfile-")
+    ids_json = os.path.join(tmp, "ids.json")
+    with open(ids_json, "w", encoding="utf-8") as f:
+        json.dump({"ids": ["A-1", "A-2"],
+                   "status_flow": ["新建", "处理中", "已完成", "已关闭"], "reached": 0}, f)
+
+    class Args:
+        file = None
+        ids = None
+        ids_file = ids_json
+        status = "处理中"
+        dry_run = True
+        yes = False
+        config = None
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        cli.cmd_update_status(Args())
+    out = buf.getvalue()
+    assert "A-1" in out and "A-2" in out
+    assert "dry-run" in out
+
+
+def test_update_status_ids_file_conflict():
+    """--ids-file 与 file/--ids 二选一，同时给出应报错。"""
+    sys.path.insert(0, SCRIPTS)
+    from rdc import cli
+    tmp = tempfile.mkdtemp(prefix="rdc-conflict-")
+    ids_json = os.path.join(tmp, "ids.json")
+    with open(ids_json, "w", encoding="utf-8") as f:
+        json.dump({"ids": ["A-1"]}, f)
+
+    class Args:
+        file = "x.xlsx"
+        ids = "A-1"
+        ids_file = ids_json
+        status = "处理中"
+        dry_run = True
+        yes = False
+        config = None
+
+    try:
+        cli.cmd_update_status(Args())
+        raise AssertionError("同时给出 file/--ids/--ids-file 应报错")
+    except SystemExit as e:
+        assert "只能二选一" in str(e)
 
 
 if __name__ == "__main__":

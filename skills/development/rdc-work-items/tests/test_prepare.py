@@ -128,6 +128,58 @@ def test_platform_export_contract():
     assert r["items"] == 3
 
 
+def test_needs_import_prep_build_excel_output():
+    """build-excel 输出（编号全空 + 含不支持列）应判定为需要自动转导入文件。"""
+    from rdc import excelgen
+    cols = list(schema.EXPORT_COLUMNS)
+    rows = [["", "工作项A", "任务", "新建", "张三 srd10000000000", "", "",
+             "", "8", "", "", "团队A", "说明", "开发"]]
+    src = _make_src(cols, rows)
+    assert prepare.needs_import_prep(src) is True
+    # 同一文件经 excelgen 生成也应命中
+    out = os.path.join(tempfile.mkdtemp(prefix="rdc-gen-"), "gen.xlsx")
+    excelgen.build({"initial_status": "新建", "work_item_type": "任务", "task_type": "开发",
+                    "assignee_name": "张三", "assignee_emp_no": "srd10000000000",
+                    "team_name": "团队A"}, [{"title": "工作项A", "hours": 8}], out)
+    assert prepare.needs_import_prep(out) is True
+
+
+def test_needs_import_prep_false_for_prepared_or_ids():
+    """已 prepare（无不支持列）或含编号（更新已有项）的文件不应自动转换。"""
+    # 已 prepare：不支持列已移除
+    cols = ["编号", "标题", "工作项类型", "状态", "指派给", "计划开始时间",
+            "实际完成时间", "初始估计", "团队", "详细说明", "任务类型"]
+    src = _make_src(cols, [["", "工作项A", "任务", "新建", "张三 srd10000000000",
+                            "", "", "8", "团队A", "说明"]])
+    assert prepare.needs_import_prep(src) is False
+    # 平台导出：含编号 → 更新，不自动转换
+    full = list(schema.EXPORT_COLUMNS)
+    exp = _make_src(full, [["P22TEST0000001-6864", "工作项A", "任务", "处理中",
+                            "张三 srd10000000000", "2026-08-01 10:00:00", "", "", "8",
+                            "张三 srd10000000000", "2026-08-01 09:00:00", "团队A", "说明", "开发"]])
+    assert prepare.needs_import_prep(exp) is False
+
+
+def test_strip_unsupported_keeps_state_and_ids():
+    """strip_unsupported：只移除不支持列与非标准列，保留编号/状态等原值。"""
+    cols = list(schema.EXPORT_COLUMNS) + ["领域"]
+    rows = [
+        ["P22TEST0000001-6864", "工作项A", "任务", "处理中", "张三 srd10000000000",
+         "2026-08-01 10:00:00", "", "", "8", "张三 srd10000000000",
+         "2026-08-01 09:00:00", "团队A", "说明", "开发", "前端"],
+    ]
+    src = _make_src(cols, rows)
+    out = os.path.join(os.path.dirname(src), "stripped.xlsx")
+    r = prepare.strip_unsupported(src, out)
+    assert any("非标准列" in w for w in r["warnings"])
+    header, out_rows = xlsx.read_table(out)
+    assert "更新时间" not in header and "创建人" not in header and "领域" not in header
+    assert "编号" in header and "状态" in header
+    it = prepare.summarize(out)[0]
+    assert it["编号"] == "P22TEST0000001-6864"  # 编号保留（更新语义由调用方决定）
+    assert it["状态"] == "处理中"  # 状态未被强制改写
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
