@@ -11,20 +11,8 @@ import subprocess
 
 from . import auth, config
 
-REQUIRED = [
-    ("workspace", "工作区"),
-    ("project_id", "项目 ID"),
-    ("team_id", "团队 ID"),
-    ("tenant_id", "租户 ID"),
-    ("api_key", "API Key"),
-    ("assignee_emp_no", "员工号"),
-    ("assignee_name", "姓名"),
-    ("team_name", "团队名称"),
-]
-
-
-def _is_placeholder(v):
-    return v is None or str(v).strip() == "" or str(v).strip().startswith("YOUR_")
+# 与 config.FIELD_META / config.PLATFORM_FIELDS 同源，勿单独维护
+REQUIRED = config.PLATFORM_FIELDS
 
 
 def _check_repo(path):
@@ -50,12 +38,12 @@ def run(cfg=None, auth_path=None):
     # ---- 配置完整性 ----
     lines.append("[配置]")
     for key, label in REQUIRED:
-        if _is_placeholder(cfg.get(key)):
+        if config.is_placeholder(cfg.get(key)):
             problems += 1
             lines.append(f"  ❌ {label}（{key}）未配置，请补充后重试")
         else:
             lines.append(f"  ✅ {label}（{key}）已配置")
-    if _is_placeholder(cfg.get("git_author")):
+    if config.is_placeholder(cfg.get("git_author")):
         warnings += 1
         lines.append("  ⚠ git_author 未配置（stats 将统计全部作者的提交，如需只统计本人请补充）")
     else:

@@ -41,9 +41,8 @@ def _auth_path(args):
     return _cfg(args).get("auth_file", "auth.json")
 
 
-def _is_placeholder(v):
-    """是否为空 / 未配置占位符（YOUR_*）。"""
-    return v is None or str(v).strip() == "" or str(v).strip().startswith("YOUR_")
+# 与 config 同源（单一声明）
+_is_placeholder = config.is_placeholder
 
 
 def _missing_fields(cfg, fields):
@@ -110,16 +109,7 @@ def _ask_fields(cfg, fields):
     return cfg
 
 
-PLATFORM_FIELDS = [
-    ("workspace", "工作区"),
-    ("project_id", "项目 ID"),
-    ("team_id", "团队 ID"),
-    ("tenant_id", "租户 ID"),
-    ("api_key", "API Key"),
-    ("assignee_emp_no", "员工号"),
-    ("assignee_name", "姓名"),
-    ("team_name", "团队名称"),
-]
+PLATFORM_FIELDS = config.PLATFORM_FIELDS
 
 EXCEL_INFO_FIELDS = [
     ("assignee_name", "姓名（指派给/创建人列）"),
@@ -242,15 +232,8 @@ PLACEHOLDERS = ("YOUR_WORKSPACE", "YOUR_PROJECT_ID", "YOUR_TEAM_ID", "YOUR_TENAN
                 "YOUR_API_KEY", "YOUR_EMP_NO", "YOUR_NAME", "YOUR_TEAM_NAME", "YOUR_GIT_AUTHOR")
 
 SETUP_FIELDS = [
-    ("workspace", "工作区（workspace）", False),
-    ("project_id", "项目 ID（x-project-id）", False),
-    ("team_id", "团队 ID（teamId）", False),
-    ("tenant_id", "租户 ID（x-tenant-id）", False),
-    ("api_key", "API Key（x-api-key）", True),
-    ("assignee_emp_no", "员工号（assignee_emp_no）", False),
-    ("assignee_name", "姓名（assignee_name）", False),
-    ("team_name", "团队名称（team_name）", False),
-    ("git_author", "Git 作者（git_author）", False),
+    (key, f"{label}（{key}）", secret)
+    for key, label, secret, _required, wizard in config.FIELD_META if wizard
 ]
 
 

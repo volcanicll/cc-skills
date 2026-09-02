@@ -76,6 +76,26 @@ DEFAULTS = {
 CONFIG_FILES = ["rdc-config.yaml", "rdc-config.yml", "rdc-config.json",
                 global_config_path()]
 
+# (key, label, secret, 平台命令必需, 配置向导收集) —— 单一声明，doctor/cli/向导共用
+FIELD_META = [
+    ("workspace", "工作区", False, True, True),
+    ("project_id", "项目 ID", False, True, True),
+    ("team_id", "团队 ID", False, True, True),
+    ("tenant_id", "租户 ID", False, True, True),
+    ("api_key", "API Key", True, True, True),
+    ("assignee_emp_no", "员工号", False, True, True),
+    ("assignee_name", "姓名", False, True, True),
+    ("team_name", "团队名称", False, True, True),
+    ("git_author", "Git 作者", False, False, True),
+]
+# 平台命令（校验/导入/导出/流转）必需字段：(key, label)
+PLATFORM_FIELDS = [(k, label) for k, label, _s, required, _w in FIELD_META if required]
+
+
+def is_placeholder(v):
+    """值是否为空 / 未配置占位符（YOUR_*）。"""
+    return v is None or str(v).strip() == "" or str(v).strip().startswith("YOUR_")
+
 
 def load_config(path=None):
     cfg = dict(DEFAULTS)
