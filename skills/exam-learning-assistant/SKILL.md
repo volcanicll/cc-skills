@@ -3,6 +3,13 @@ name: exam-learning-assistant
 description: "Automated exam assistance and learning companion for online certification tests. Use for: 1) Taking online certification exams with browser automation via agent-browser CDP, 2) Practicing questions with detailed explanations and knowledge retention, 3) Managing question banks and tracking incorrect answers. Supports HarmonyOS/ArkTS/ArkUI exam topics with extensible question database."
 metadata:
   category: learning
+  triggers:
+    - 考试助手
+    - 认证考试
+    - 考试题库
+    - exam assistant
+    - exam practice
+    - HarmonyOS 考试
 ---
 
 # Exam Learning Assistant
@@ -308,6 +315,6 @@ Solution: Report error and update knowledge base for next time
 
 ## References
 
-- [Agent Browser Documentation](../../agent-browser/) - Browser automation
+- [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) - Browser automation protocol
 - [HarmonyOS Developer Docs](https://developer.huawei.com/consumer/cn/doc/) - Official docs
 - [Learning Modes Guide](references/learning_modes.md) - Mode usage details

@@ -1,0 +1,26 @@
+{
+  "name": "exam-learning-assistant",
+  "version": "1.0.0",
+  "description": "Automated exam assistance and learning companion for online certification tests via agent-browser and CDP.",
+  "category": "learning",
+  "requires": {
+    "python": ">= 3.8",
+    "browser": ["chrome", "edge"],
+    "cli": ["agent-browser"]
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json",
+    "scripts/",
+    "references/",
+    "assets/",
+    "tests/"
+  ],
+  "docs": {
+    "harmonyos-questions": "references/harmonyos_questions.md",
+    "learning-modes": "references/learning_modes.md"
+  },
+  "tests": {
+    "run": "python3 tests/test_question_matcher.py"
+  }
+}
