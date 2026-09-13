@@ -17,6 +17,18 @@ For more information about the Agent Skills standard, visit [agentskills.io](htt
 
 ## Installation
 
+### Via `skills` CLI（推荐 / 18+ Agents 通用）
+
+使用开源开放的 [Agent Skills CLI](https://skills.sh) 安装，跨 agent 支持 Claude Code、Cursor、GitHub Copilot、Cline、Codex 等主流环境：
+
+```bash
+# 交互式添加技能集合（支持勾选）
+npx skills add volcanicll/cc-skills
+
+# 安装单个指定技能（例如 browser-login-session）
+npx skills add volcanicll/cc-skills --skill browser-login-session
+```
+
 ### Via Claude Code Marketplace
 
 ```bash
@@ -62,34 +74,34 @@ Copy individual skill folders to your Claude skills directory.
 
 ### Development (开发工具)
 
-| Skill | Description |
-|-------|-------------|
-| **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖。同时是仓库的元 skill 模板，新建 skill 参考其结构与创建清单 |
-| **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 |
-| **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 |
-| **rdc-work-items** | 研发云（srdcloud.cn）工作项自动化：git 提交统计 → 生成工作量 Excel → 平台导入/导出 → 接口逐级流转状态。生成、导入、导出、流转各环节可独立使用（要哪步做哪步），也可 flow 一键跑完整月度流程；CDP 获取登录态鉴权，纯 Python 标准库零依赖 |
-| **swagger-docs** | 将 Swagger/OpenAPI 接口文档同步到本地离线缓存，支持按路径/关键字/标签/权限编码搜索接口、查看接口详情与 TypeScript 类型定义、查询 schema |
+| Skill | Description | Install (CLI) |
+|-------|-------------|---------------|
+| **browser-login-session** | 无感复用浏览器已登录态：通过 CDP 从本机 Chrome/Edge 提取指定域名的 Cookie/Token 并组装 API 请求头，纯 Python 标准库、零 pip 依赖。同时是仓库的元 skill 模板，新建 skill 参考其结构与创建清单 | `npx skills add volcanicll/cc-skills --skill browser-login-session` |
+| **git-history-cleaner** | 清理 Git 仓库历史中的大文件，分析仓库体积、识别问题文件、使用 git-filter-repo 重写历史并压缩仓库 | `npx skills add volcanicll/cc-skills --skill git-history-cleaner` |
+| **changelog-writer** | 将 Git 提交记录整理为面向用户的 Release Notes 或 CHANGELOG 条目：按影响分类、合并相关提交、过滤内部噪音 | `npx skills add volcanicll/cc-skills --skill changelog-writer` |
+| **rdc-work-items** | 研发云（srdcloud.cn）工作项自动化：git 提交统计 → 生成工作量 Excel → 平台导入/导出 → 接口逐级流转状态。生成、导入、导出、流转各环节可独立使用（要哪步做哪步），也可 flow 一键跑完整月度流程；CDP 获取登录态鉴权，纯 Python 标准库零依赖 | `npx skills add volcanicll/cc-skills --skill rdc-work-items` |
+| **swagger-docs** | 将 Swagger/OpenAPI 接口文档同步到本地离线缓存，支持按路径/关键字/标签/权限编码搜索接口、查看接口详情与 TypeScript 类型定义、查询 schema | `npx skills add volcanicll/cc-skills --skill swagger-docs` |
 
 ### Creative (创意设计)
 
-| Skill | Description |
-|-------|-------------|
-| **naive-doodle-avatar** | 将真人肖像照片转换为可爱、儿童风、手绘风格的 chibi 涂鸦头像，保留发型、眼镜、脸型、表情、配饰等识别特征 |
-| **image-to-hand-drawn** | 将整张照片转换为高质量手绘插图，保留人物、景观、水体、植被、动物、建筑等完整场景元素，仅简化视觉噪点而非移除环境 |
-| **photo-to-editorial-poster** | 将每张照片转换为独立的编辑风海报：3:4 画布，上部保留原照片并做杂志级精修调色，下部将主体重新诠释为轻快、稚拙、复古的手绘编辑插画；支持上下/左右分割与仅插画效果图三种模式，可选对半、不对称、复古边框、卡片式留白等结构变体 |
+| Skill | Description | Install (CLI) |
+|-------|-------------|---------------|
+| **naive-doodle-avatar** | 将真人肖像照片转换为可爱、儿童风、手绘风格的 chibi 涂鸦头像，保留发型、眼镜、脸型、表情、配饰等识别特征 | `npx skills add volcanicll/cc-skills --skill naive-doodle-avatar` |
+| **image-to-hand-drawn** | 将整张照片转换为高质量手绘插图，保留人物、景观、水体、植被、动物、建筑等完整场景元素，仅简化视觉噪点而非移除环境 | `npx skills add volcanicll/cc-skills --skill image-to-hand-drawn` |
+| **photo-to-editorial-poster** | 将每张照片转换为独立的编辑风海报：3:4 画布，上部保留原照片并做杂志级精修调色，下部将主体重新诠释为轻快、稚拙、复古的手绘编辑插画；支持上下/左右分割与仅插画效果图三种模式，可选对半、不对称、复古边框、卡片式留白等结构变体 | `npx skills add volcanicll/cc-skills --skill photo-to-editorial-poster` |
 
 ### Learning (学习教育)
 
-| Skill | Description |
-|-------|-------------|
-| **eli5** | ELI5 解释器。用超级通俗的方式解释任何主题、代码或系统——像对完全不懂这个领域的人说话——并生成一个漂亮的 HTML 可视化页面（大图 + 很少文字 + 清晰流程图） |
-| **exam-learning-assistant** | 考试练习自动化助手。支持多种学习模式、题目匹配、错题复盘、考试报告生成 |
+| Skill | Description | Install (CLI) |
+|-------|-------------|---------------|
+| **eli5** | ELI5 解释器。用超级通俗的方式解释任何主题、代码或系统——像对完全不懂这个领域的人说话——并生成一个漂亮的 HTML 可视化页面（大图 + 很少文字 + 清晰流程图） | `npx skills add volcanicll/cc-skills --skill eli5` |
+| **exam-learning-assistant** | 考试练习自动化助手。支持多种学习模式、题目匹配、错题复盘、考试报告生成 | `npx skills add volcanicll/cc-skills --skill exam-learning-assistant` |
 
 ### Meta (元工具)
 
-| Skill | Description |
-|-------|-------------|
-| **skill-manager** | Agent Skills 包管理器。支持从远程 Git 注册表列出、安装、更新 skills |
+| Skill | Description | Install (CLI) |
+|-------|-------------|---------------|
+| **skill-manager** | Agent Skills 包管理器。支持从远程 Git 注册表列出、安装、更新 skills | `npx skills add volcanicll/cc-skills --skill skill-manager` |
 
 ## Repository Structure
 
@@ -97,22 +109,18 @@ Copy individual skill folders to your Claude skills directory.
 cc-skills/
 ├── .claude-plugin/
 │   └── marketplace.json      # Plugin marketplace configuration
-├── skills/                    # Skill directories (categorized)
-│   ├── creative/              # Creative & design
-│   │   ├── naive-doodle-avatar/   # Photo to hand-drawn doodle avatar
-│   │   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
-│   │   └── photo-to-editorial-poster/ # Photo to editorial split poster
-│   ├── development/           # Development tools
-│   │   ├── browser-login-session/ # Reuse browser login via CDP (meta-skill template)
-│   │   ├── changelog-writer/      # Commit history to release notes
-│   │   ├── git-history-cleaner/   # Git repository history cleaner
-│   │   ├── swagger-docs/          # Offline Swagger/OpenAPI docs query
-│   │   └── rdc-work-items/        # RDC work items monthly workload automation
-│   ├── learning/              # Learning & education
-│   │   ├── eli5/                  # Simple visual explanations as HTML artifacts
-│   │   └── exam-learning-assistant/ # Exam practice automation
-│   └── meta/                  # Meta tooling
-│       └── skill-manager/         # Skills package manager
+├── skills/                    # Skill directories (flat structure)
+│   ├── browser-login-session/ # Reuse browser login via CDP (meta-skill template)
+│   ├── changelog-writer/      # Commit history to release notes
+│   ├── eli5/                  # Simple visual explanations as HTML artifacts
+│   ├── exam-learning-assistant/ # Exam practice automation
+│   ├── git-history-cleaner/   # Git repository history cleaner
+│   ├── image-to-hand-drawn/   # Photo to hand-drawn illustration
+│   ├── naive-doodle-avatar/   # Photo to hand-drawn doodle avatar
+│   ├── photo-to-editorial-poster/ # Photo to editorial split poster
+│   ├── rdc-work-items/        # RDC work items monthly workload automation
+│   ├── skill-manager/         # Skills package manager
+│   └── swagger-docs/          # Offline Swagger/OpenAPI docs query
 ├── scripts/
 │   └── sync_marketplace.py      # Sync & validate marketplace.json
 ├── AGENTS.md                   # Project collaboration & skill standards
@@ -124,7 +132,7 @@ cc-skills/
 
 ## Creating Your Own Skills
 
-新 skill 请以 `skills/development/browser-login-session/` 为**元 skill 模板**：
+新 skill 请以 `skills/browser-login-session/` 为**元 skill 模板**：
 标准目录结构（`SKILL.md` + `manifest.json` + `references/` + `scripts/` +
 `examples/` + `tests/`）与创建清单见该 skill 的
 `references/skill-authoring.md`。

@@ -1,5 +1,6 @@
 ---
 name: browser-login-session
+category: development
 description: 无感复用浏览器已登录态，通过 CDP 从本机 Chrome/Edge 提取指定域名的登录凭据（Cookie、Authorization Token、localStorage）并组装为 API 请求头。纯 Python 标准库、零 pip 依赖，不碰磁盘 Cookie 加密、不注入页面、不绕过验证码与风控。同时作为本仓库创建新 skill 的元 skill 模板。Use when users ask 复用浏览器登录态、获取已登录站点 Cookie/Token、用当前登录身份调 API、无感调用需登录接口、browser login session、CDP cookies.
 metadata:
   triggers:

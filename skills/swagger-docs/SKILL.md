@@ -1,5 +1,6 @@
 ---
 name: swagger-docs
+category: development
 description: 查询 Swagger/OpenAPI 接口文档（本地离线缓存）。支持按路径/关键字/标签/权限编码搜索接口、查看接口详情与 TypeScript 类型定义、查询 schema。当用户提到"查接口"、"API 文档"、"swagger"、"openapi"、"接口详情"、"权限编码"、"schema"等时使用。
 ---
 

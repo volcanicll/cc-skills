@@ -8,11 +8,11 @@
 cc-skills/
 ├── .claude-plugin/
 │   └── marketplace.json      # 插件市场配置（由脚本生成，勿手改）
-├── skills/                   # Skill 目录（按分类组织）
-│   ├── creative/             # 创意设计
-│   ├── development/          # 开发工具
-│   ├── learning/             # 学习教育
-│   └── meta/                 # 元工具
+├── skills/                   # Skill 目录（一级扁平组织）
+│   ├── browser-login-session/
+│   ├── changelog-writer/
+│   ├── eli5/
+│   └── ...
 ├── scripts/
 │   └── sync_marketplace.py   # 同步/校验 marketplace 的脚本
 ├── AGENTS.md                 # 项目协作规范（含技能开发规范）
@@ -24,12 +24,11 @@ cc-skills/
 
 ### 目录结构
 
-每个 skill 位于 `skills/<category>/<skill-name>/`：
+每个 skill 位于 `skills/<skill-name>/`（一级目录存放，不再按分类建子目录）：
 
-- `<category>`：`creative`、`development`、`learning`、`meta` 之一，与 `skills/` 一级目录对应
 - `<skill-name>`：英文短横线命名（kebab-case）
 
-新 skill 以 `skills/development/browser-login-session/` 为元 skill 模板，推荐结构：
+新 skill 以 `skills/browser-login-session/` 为元 skill 模板，推荐结构：
 
 ```
 skill-name/
@@ -50,6 +49,7 @@ skill-name/
 ```markdown
 ---
 name: my-skill-name
+category: development
 description: 说明该 skill 的用途与触发场景，描述应具体、可触发
 ---
 
@@ -61,6 +61,7 @@ description: 说明该 skill 的用途与触发场景，描述应具体、可触
 要求：
 
 - `name` 必填，且必须与 skill 目录名完全一致
+- `category` 必填，所属分类（`creative`、`development`、`learning`、`meta` 之一）
 - `description` 必填，说明「做什么」与「何时使用」，建议包含触发关键词
 - 可选的 `metadata.triggers` 用于补充触发词
 
@@ -68,7 +69,7 @@ description: 说明该 skill 的用途与触发场景，描述应具体、可触
 
 ### Marketplace 同步
 
-`.claude-plugin/marketplace.json` 由 `scripts/sync_marketplace.py` 自动生成，按分类生成插件（`<category>-tools`），**禁止手动编辑**。
+`.claude-plugin/marketplace.json` 由 `scripts/sync_marketplace.py` 自动生成，根据各技能 frontmatter 的 `category` 自动归类生成插件（`<category>-tools`），**禁止手动编辑**。
 
 常用命令：
 
@@ -83,10 +84,14 @@ python3 scripts/sync_marketplace.py --check
 python3 scripts/sync_marketplace.py --verbose
 ```
 
+### skills CLI 支持
+
+本仓库的一级扁平目录结构（`skills/<skill-name>/`）全面兼容开放标准的 [Agent Skills CLI](https://skills.sh)（`npx skills add volcanicll/cc-skills [--skill <name>]`），可直接被 Claude Code、Cursor、GitHub Copilot、Cline 等 18+ 种主流 AI Agent 识别与安装。
+
 ## 新增 skill 流程
 
-1. 以元 skill `skills/development/browser-login-session/` 为模板复制骨架
-2. 创建 `skills/<category>/<skill-name>/SKILL.md`，frontmatter 含合法的 `name` 与 `description`
+1. 以元 skill `skills/browser-login-session/` 为模板复制骨架
+2. 创建 `skills/<skill-name>/SKILL.md`，frontmatter 含合法的 `name`、`category` 与 `description`
 3. 按 `references/skill-authoring.md` 清单补充 manifest / references / scripts / examples / tests
 4. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
 5. 更新 `README.md`：

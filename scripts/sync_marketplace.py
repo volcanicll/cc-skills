@@ -3,10 +3,12 @@
 
 This script is the single source of truth for the marketplace plugin layout:
 
-    skills/<category>/<skill>/SKILL.md  ->  plugin "<category>-tools" -> skill "./skills/<category>/<skill>"
+    skills/<skill>/SKILL.md  ->  plugin "<category>-tools" -> skill "./skills/<skill>"
 
-It also validates every SKILL.md frontmatter (name / description required,
-name must match the skill directory name).
+It validates every SKILL.md frontmatter:
+- 'name' required, must match skill directory name
+- 'description' required
+- 'category' required, must be one of: creative, development, learning, meta
 
 Usage:
     python3 scripts/sync_marketplace.py            # rewrite marketplace.json
@@ -18,14 +20,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
-
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    sys.stderr.write("error: PyYAML is required (pip install pyyaml)\n")
-    sys.exit(2)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_ROOT = REPO_ROOT / "skills"
@@ -39,9 +36,72 @@ PLUGIN_DESCRIPTIONS = {
     "meta": "Meta tooling for managing Agent Skills",
 }
 
+VALID_CATEGORIES = set(PLUGIN_DESCRIPTIONS.keys())
+
 
 class SkillError(Exception):
     """Raised when a skill fails validation."""
+
+
+def _fallback_yaml_parse(text: str) -> dict:
+    """Minimal stdlib-only YAML parser for SKILL.md frontmatter."""
+    res: dict = {}
+    lines = text.splitlines()
+    i = 0
+    num_lines = len(lines)
+
+    while i < num_lines:
+        line = lines[i]
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+
+        match = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if match:
+            key, val = match.groups()
+            val = val.strip()
+            if not val:
+                # Could be a nested dict or list
+                nested_lines: list[str] = []
+                i += 1
+                while i < num_lines:
+                    next_line = lines[i]
+                    if next_line.strip() and not next_line.startswith(" ") and not next_line.startswith("\t"):
+                        break
+                    nested_lines.append(next_line)
+                    i += 1
+
+                # Check if list or dict
+                is_list = any(l.strip().startswith("- ") for l in nested_lines if l.strip())
+                if is_list:
+                    items: list[str] = []
+                    for nl in nested_lines:
+                        s = nl.strip()
+                        if s.startswith("- "):
+                            item_val = s[2:].strip()
+                            if len(item_val) >= 2 and item_val[0] in ('"', "'") and item_val[-1] == item_val[0]:
+                                item_val = item_val[1:-1]
+                            items.append(item_val)
+                    res[key] = items
+                else:
+                    nested_dict = {}
+                    for nl in nested_lines:
+                        nm = re.match(r"^\s+([A-Za-z0-9_-]+):\s*(.*)$", nl)
+                        if nm:
+                            nk, nv = nm.groups()
+                            nv = nv.strip()
+                            if len(nv) >= 2 and nv[0] in ('"', "'") and nv[-1] == nv[0]:
+                                nv = nv[1:-1]
+                            nested_dict[nk] = nv
+                    res[key] = nested_dict
+                continue
+            else:
+                if len(val) >= 2 and val[0] in ('"', "'") and val[-1] == val[0]:
+                    val = val[1:-1]
+                res[key] = val
+        i += 1
+    return res
 
 
 def parse_frontmatter(skill_dir: Path) -> dict:
@@ -58,9 +118,13 @@ def parse_frontmatter(skill_dir: Path) -> dict:
     if end == -1:
         raise SkillError(f"{skill_md.relative_to(REPO_ROOT)}: frontmatter is not closed with '---'")
 
+    frontmatter_content = text[4:end]
     try:
-        meta = yaml.safe_load(text[4:end])
-    except yaml.YAMLError as exc:
+        import yaml
+        meta = yaml.safe_load(frontmatter_content)
+    except ImportError:
+        meta = _fallback_yaml_parse(frontmatter_content)
+    except Exception as exc:
         raise SkillError(f"{skill_md.relative_to(REPO_ROOT)}: invalid YAML frontmatter: {exc}") from exc
 
     if not isinstance(meta, dict):
@@ -68,7 +132,7 @@ def parse_frontmatter(skill_dir: Path) -> dict:
     return meta
 
 
-def validate_skill(category: str, skill_dir: Path, verbose: bool) -> dict:
+def validate_skill(skill_dir: Path, verbose: bool) -> dict:
     """Validate one skill and return its normalized metadata."""
     name = skill_dir.name
     meta = parse_frontmatter(skill_dir)
@@ -82,13 +146,25 @@ def validate_skill(category: str, skill_dir: Path, verbose: bool) -> dict:
             f"must match directory name '{name}'"
         )
 
+    category = meta.get("category")
+    if not category:
+        raise SkillError(
+            f"{skill_dir.relative_to(REPO_ROOT)}: frontmatter 'category' is required "
+            f"(must be one of: {', '.join(sorted(VALID_CATEGORIES))})"
+        )
+    if category not in VALID_CATEGORIES:
+        raise SkillError(
+            f"{skill_dir.relative_to(REPO_ROOT)}: invalid category '{category}', "
+            f"must be one of: {', '.join(sorted(VALID_CATEGORIES))}"
+        )
+
     description = meta.get("description")
     if not description:
         raise SkillError(f"{skill_dir.relative_to(REPO_ROOT)}: frontmatter 'description' is required")
 
     if verbose:
         print(f"  [{category}] {name}: {str(description)[:60]}...")
-    return {"name": name, "description": str(description)}
+    return {"name": name, "category": category, "description": str(description)}
 
 
 def scan_skills(verbose: bool) -> list[dict]:
@@ -97,12 +173,9 @@ def scan_skills(verbose: bool) -> list[dict]:
         raise SkillError(f"{SKILLS_ROOT.relative_to(REPO_ROOT)}: skills directory not found")
 
     skills: list[dict] = []
-    for category_dir in sorted(p for p in SKILLS_ROOT.iterdir() if p.is_dir()):
-        category = category_dir.name
-        for skill_dir in sorted(p for p in category_dir.iterdir() if p.is_dir()):
-            record = validate_skill(category, skill_dir, verbose)
-            record["category"] = category
-            skills.append(record)
+    for skill_dir in sorted(p for p in SKILLS_ROOT.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        record = validate_skill(skill_dir, verbose)
+        skills.append(record)
     return skills
 
 
@@ -119,7 +192,7 @@ def build_plugins(skills: list[dict]) -> list[dict]:
                 ),
                 "source": "./",
                 "strict": False,
-                "skills": [f"./skills/{s['category']}/{s['name']}" for s in category_skills],
+                "skills": [f"./skills/{s['name']}" for s in category_skills],
             }
         )
     return plugins

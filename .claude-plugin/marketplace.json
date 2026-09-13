@@ -17,9 +17,9 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/creative/image-to-hand-drawn",
-        "./skills/creative/naive-doodle-avatar",
-        "./skills/creative/photo-to-editorial-poster"
+        "./skills/image-to-hand-drawn",
+        "./skills/naive-doodle-avatar",
+        "./skills/photo-to-editorial-poster"
       ]
     },
     {
@@ -28,11 +28,11 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/development/browser-login-session",
-        "./skills/development/changelog-writer",
-        "./skills/development/git-history-cleaner",
-        "./skills/development/rdc-work-items",
-        "./skills/development/swagger-docs"
+        "./skills/browser-login-session",
+        "./skills/changelog-writer",
+        "./skills/git-history-cleaner",
+        "./skills/rdc-work-items",
+        "./skills/swagger-docs"
       ]
     },
     {
@@ -41,8 +41,8 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/learning/eli5",
-        "./skills/learning/exam-learning-assistant"
+        "./skills/eli5",
+        "./skills/exam-learning-assistant"
       ]
     },
     {
@@ -51,7 +51,7 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/meta/skill-manager"
+        "./skills/skill-manager"
       ]
     }
   ]

@@ -1,5 +1,6 @@
 ---
 name: eli5
+category: learning
 description: "Explain any topic, concept, codebase, or system in extremely simple terms - as if talking to someone who knows nothing about the field - and produce a beautiful HTML visualization page with big pictures, few words, and clear flow diagrams. Use when the user says ELI5, explain like I'm five, 通俗易懂地解释, 用大白话讲讲, or asks for a simple/visual explanation of something complex."
 ---
 

@@ -56,8 +56,8 @@ cp -r swagger-docs ~/.claude/skills/swagger-docs
 
 脚本通过自身路径解析数据目录，放在任何位置都能工作。之后对 AI 说"查一下订单接口"即可自动触发。
 
-> 仓库内路径为 `skills/development/swagger-docs/`；在仓库根目录使用时把命令前缀换成
-> `node skills/development/swagger-docs/scripts/...` 即可。
+> 仓库内路径为 `skills/swagger-docs/`；在仓库根目录使用时把命令前缀换成
+> `node skills/swagger-docs/scripts/...` 即可。
 
 ## 🗂️ 多地址管理
 
@@ -117,7 +117,7 @@ $ node scripts/query.js -s 停车 tags
 ## 📁 目录结构
 
 ```
-skills/development/swagger-docs/
+skills/swagger-docs/
 ├── SKILL.md              # Agent 技能描述（AI 读这个）
 ├── README.md             # 本文档
 ├── LICENSE

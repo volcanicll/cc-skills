@@ -20,7 +20,7 @@
 `examples/deepseek-chat/deepseek_chat.py`：
 
 ```bash
-cd skills/development/browser-login-session/examples/deepseek-chat
+cd skills/browser-login-session/examples/deepseek-chat
 python3 deepseek_chat.py --new --prompt "你好"
 python3 deepseek_chat.py --session-id <id> --parent-message-id <id> --prompt "续聊"
 ```

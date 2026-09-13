@@ -1,5 +1,6 @@
 ---
 name: rdc-work-items
+category: development
 description: 研发云（srdcloud.cn）工作项自动化：git 提交统计 → 生成工作量 Excel → 平台导入/导出 → 接口逐级流转状态。生成、导入、导出、流转各环节都可独立使用（要哪步做哪步，不必每次跑完整流程），也可用 flow 一键跑完月度全流程。通过 CDP 获取登录态鉴权，纯 Python 标准库、零 pip 依赖，变量由 rdc-config.yaml 自定义。用于"工作量统计/生成工作量excel/导入导出工作项/月度绩效"等请求。
 metadata:
   short-description: 研发云工作项生成/导入/导出与状态流转（各环节可独立使用）

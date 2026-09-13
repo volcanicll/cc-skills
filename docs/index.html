@@ -461,7 +461,7 @@
     <div class="hero-visual reveal visible" aria-hidden="true">
       <div class="hero-visual-inner">
         <div class="hero-visual-label">共收录</div>
-        <div class="hero-visual-count">10</div>
+        <div class="hero-visual-count">11</div>
         <div class="hero-visual-sub">个 Agent Skills</div>
       </div>
       <span class="hero-visual-tag tag-1">手绘头像</span>
@@ -476,7 +476,7 @@
   <section id="skills">
     <div class="reveal">
       <div class="section-label">技能分类</div>
-      <h2 class="section-title">四个方向，十种能力</h2>
+      <h2 class="section-title">四个方向，十一种能力</h2>
       <p class="section-sub">每个技能是一个独立文件夹：SKILL.md 指令 + 可选脚本、文档与测试。Claude 根据上下文自动激活对应技能；其中 browser-login-session 是新建 skill 的结构模板（元 skill）。</p>
     </div>
 
@@ -500,7 +500,7 @@
       </div>
 
       <div class="cat-row reveal">
-        <div class="cat-name">开发工具 <span class="cat-count">4</span></div>
+        <div class="cat-name">开发工具 <span class="cat-count">5</span></div>
         <div class="skill-list">
           <div class="skill-item">
             <span class="skill-name">browser-login-session <em style="color:var(--terracotta);font-style:normal;font-size:12px;">（元 skill 模板）</em></span>
@@ -554,20 +554,22 @@
   <section id="install">
     <div class="reveal">
       <div class="section-label">安装方式</div>
-      <h2 class="section-title">两种安装方式</h2>
-      <p class="section-sub">推荐通过 Claude Code Marketplace 安装，按需选择分类插件。</p>
+      <h2 class="section-title">多种安装方式</h2>
+      <p class="section-sub">支持主流的 skills CLI 通用安装，以及 Claude Code Marketplace 插件市场。</p>
     </div>
 
     <div class="install-grid">
       <div class="install-card reveal">
-        <h3>Marketplace 安装</h3>
-        <pre><code>/plugin marketplace add volcanicll/cc-skills</code></pre>
-        <p>添加后运行 <code style="font-family:ui-monospace;font-size:13px;">/plugin marketplace</code>，选择 volcanic-skills 并安装需要的分类插件。</p>
+        <div style="font-size:12px;font-weight:600;color:var(--terracotta);margin-bottom:8px;">推荐 &middot; 18+ Agents 通用</div>
+        <h3>skills CLI 安装</h3>
+        <pre><code>npx skills add volcanicll/cc-skills</code></pre>
+        <p>主流开放标准，自动识别并配置到 Claude Code、Cursor、GitHub Copilot、Cline 等；支持指定单项：<code style="font-family:ui-monospace;font-size:12px;">--skill browser-login-session</code>。</p>
       </div>
       <div class="install-card reveal">
-        <h3>直接安装</h3>
-        <pre><code>/plugin install creative-tools@volcanic-skills</code></pre>
-        <p>也可以一次安装全部四个分类插件（开发工具已包含 swagger-docs 与 rdc-work-items），或手动 clone 仓库复制技能文件夹。</p>
+        <div style="font-size:12px;font-weight:600;color:var(--ink-faint);margin-bottom:8px;">Claude Code 原生</div>
+        <h3>Marketplace 安装</h3>
+        <pre><code>/plugin marketplace add volcanicll/cc-skills</code></pre>
+        <p>在 Claude Code 中添加市场源，按分类插件（如 <code style="font-family:ui-monospace;font-size:12px;">development-tools</code>）按需安装。</p>
       </div>
     </div>
   </section>

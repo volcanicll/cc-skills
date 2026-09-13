@@ -1,5 +1,6 @@
 ---
 name: naive-doodle-avatar
+category: creative
 description: Generate "Naive Doodle Avatar" images by transforming real-person portrait photos into cute, childlike, hand-drawn chibi doodle avatars. Preserve recognizable visual traits such as hairstyle, glasses, face shape, expression, accessories, clothing details and masks while simplifying them into rough textured brushwork, bold graphic facial features, restrained colors and charming asymmetry. Use whenever the user asks to turn a photo into a doodle avatar, naive-art portrait, hand-drawn avatar, chibi sketch, cartoon profile picture, or similar illustration.
 ---
 

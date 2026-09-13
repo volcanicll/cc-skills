@@ -1,5 +1,6 @@
 ---
 name: exam-learning-assistant
+category: learning
 description: "Automated exam assistance and learning companion for online certification tests. Use for: 1) Taking online certification exams with browser automation via agent-browser CDP, 2) Practicing questions with detailed explanations and knowledge retention, 3) Managing question banks and tracking incorrect answers. Supports HarmonyOS/ArkTS/ArkUI exam topics with extensible question database."
 ---
 
