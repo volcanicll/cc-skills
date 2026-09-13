@@ -122,7 +122,8 @@ cc-skills/
 │   ├── skill-manager/         # Skills package manager
 │   └── swagger-docs/          # Offline Swagger/OpenAPI docs query
 ├── scripts/
-│   └── sync_marketplace.py      # Sync & validate marketplace.json
+│   ├── sync_marketplace.py      # Sync & validate marketplace.json
+│   └── verify_all.py            # Run quality checks & all skill tests
 ├── AGENTS.md                   # Project collaboration & skill standards
 ├── CONTRIBUTING.md             # Contribution guide
 ├── README.md
@@ -151,11 +152,12 @@ skill-name/
 
 ### 规范与自动化
 
-开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 `AGENTS.md` 中的「技能开发规范」。新增或修改 skill 后，运行以下命令同步并校验 marketplace 配置：
+开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 `AGENTS.md` 中的「技能开发规范」。新增或修改 skill 后，运行以下命令同步并校验 marketplace 配置及全量测试：
 
 ```bash
 python3 scripts/sync_marketplace.py          # 重新生成 marketplace.json
-python3 scripts/sync_marketplace.py --check  # 提交前校验
+python3 scripts/sync_marketplace.py --check  # 提交前校验 marketplace
+python3 scripts/verify_all.py                # 提交前全量门禁（marketplace + py_compile + 链接 + 单元测试）
 ```
 
 ### Minimal SKILL.md Template
@@ -164,6 +166,8 @@ python3 scripts/sync_marketplace.py --check  # 提交前校验
 ---
 name: my-skill-name
 description: A clear description of what this skill does and when Claude should use it
+metadata:
+  category: development
 ---
 
 # My Skill Name

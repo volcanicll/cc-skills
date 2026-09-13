@@ -14,7 +14,8 @@ cc-skills/
 │   ├── eli5/
 │   └── ...
 ├── scripts/
-│   └── sync_marketplace.py   # 同步/校验 marketplace 的脚本
+│   ├── sync_marketplace.py   # 同步/校验 marketplace 的脚本
+│   └── verify_all.py         # 统一运行语法编译、坏链检查与各技能测试
 ├── AGENTS.md                 # 项目协作规范（含技能开发规范）
 ├── CONTRIBUTING.md           # 本文档
 └── README.md                 # 仓库说明与安装指引
@@ -83,6 +84,9 @@ python3 scripts/sync_marketplace.py --check
 
 # 查看扫描到的 skill 列表
 python3 scripts/sync_marketplace.py --verbose
+
+# 仓库全量自动化门禁（语法/链接/marketplace/各技能测试）
+python3 scripts/verify_all.py
 ```
 
 ### skills CLI 支持
@@ -115,6 +119,7 @@ python3 scripts/sync_marketplace.py --verbose
 - [ ] 结构遵循元 skill 模板（SKILL.md + manifest.json + references/ + scripts/ + examples/ + tests/ 按需）
 - [ ] 自带测试通过、无密钥残留
 - [ ] `python3 scripts/sync_marketplace.py --check` 通过
+- [ ] `python3 scripts/verify_all.py` 自动化全量检查通过
 - [ ] README 技能表格与结构图已更新
 - [ ] `docs/index.html` 落地页已同步（技能总数/分类计数/描述）
 - [ ] 提交信息符合 `<type>(<scope>): <description>` 格式

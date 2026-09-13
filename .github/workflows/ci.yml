@@ -14,5 +14,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pyyaml
-      - name: Validate marketplace.json matches skills/
-        run: python3 scripts/sync_marketplace.py --check
+      - name: Run repository quality checks and test suites
+        run: python3 scripts/verify_all.py
