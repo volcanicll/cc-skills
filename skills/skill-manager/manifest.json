@@ -1,0 +1,21 @@
+{
+  "name": "skill-manager",
+  "version": "1.0.0",
+  "description": "Package manager for Agent Skills. Allows listing, installing, and updating skills from remote Git registries locally.",
+  "category": "meta",
+  "requires": {
+    "python": ">= 3.8",
+    "git": ">= 2.0"
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json",
+    "README.md",
+    "config/",
+    "scripts/",
+    "tests/"
+  ],
+  "tests": {
+    "run": "python3 -m unittest discover -s tests"
+  }
+}

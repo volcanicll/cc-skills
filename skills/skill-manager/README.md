@@ -3,7 +3,7 @@
 > Agent Skills 的包管理器。支持列出、安装和更新来自远程 Git 仓库的 skills。
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
 ---
 
@@ -23,22 +23,22 @@
 
 ```bash
 # 列出所有可用的 skills
-python scripts/manager.py list
+python3 scripts/manager.py list
 
 # 安装一个 skill
-python scripts/manager.py install git-history-cleaner
+python3 scripts/manager.py install git-history-cleaner
 
 # 更新所有已安装的 skills
-python scripts/manager.py update
+python3 scripts/manager.py update
 ```
 
 ### 作为 Python 模块运行
 
 ```bash
 cd skills/skill-manager
-python -m scripts list
-python -m scripts install git-history-cleaner
-python -m scripts update
+python3 -m scripts list
+python3 -m scripts install git-history-cleaner
+python3 -m scripts update
 ```
 
 ---
@@ -48,13 +48,16 @@ python -m scripts update
 ```
 skill-manager/
 ├── SKILL.md              # 核心 skill 文档
+├── manifest.json         # 元数据清单
 ├── README.md             # 项目说明（本文件）
 ├── config/
 │   └── sources.json      # 注册源配置
-└── scripts/
-    ├── __init__.py       # 包入口
-    ├── __main__.py       # 支持 python -m
-    └── manager.py        # 主程序逻辑
+├── scripts/
+│   ├── __init__.py       # 包入口
+│   ├── __main__.py       # 支持 python -m
+│   └── manager.py        # 主程序逻辑
+└── tests/
+    └── test_manager.py   # 单元测试
 ```
 
 ---

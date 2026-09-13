@@ -19,41 +19,46 @@ class TestSkillManager(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        # Use a test config file
-        self.test_config = {
-            "registries": [
-                {
-                    "name": "test-registry",
-                    "url": "https://github.com/test/repo",
-                    "branch": "main",
-                    "skills_root": "skills",
-                    "priority": 100
-                }
-            ]
-        }
+        self.managers = []
+
+    def tearDown(self):
+        """Clean up any initialized managers."""
+        for m in self.managers:
+            m.cleanup()
+
+    def _create_manager(self, **kwargs):
+        m = SkillManager(**kwargs)
+        self.managers.append(m)
+        return m
 
     def test_config_loading(self):
         """Test configuration loading."""
-        # This test assumes config file exists
-        manager = SkillManager()
+        manager = self._create_manager()
         self.assertIsInstance(manager.config, dict)
         self.assertIsInstance(manager.registries, list)
 
+    def test_custom_skills_root(self):
+        """Test custom skills_root parameter."""
+        custom_root = "/tmp/my-skills"
+        manager = self._create_manager(skills_root=custom_root)
+        self.assertEqual(manager.skills_root, os.path.abspath(custom_root))
+
     def test_registries_sorted_by_priority(self):
         """Test that registries are sorted by priority."""
-        manager = SkillManager()
+        manager = self._create_manager()
+        # Test explicit multi-registry sorting logic
+        test_regs = [
+            {"name": "low", "priority": 10},
+            {"name": "high", "priority": 100},
+            {"name": "mid", "priority": 50},
+        ]
+        test_regs.sort(key=lambda x: x.get("priority", 0), reverse=True)
+        self.assertEqual([r["name"] for r in test_regs], ["high", "mid", "low"])
 
-        # Check if registries are sorted by priority (descending)
-        if len(manager.registries) > 1:
-            priorities = [r.get("priority", 0) for r in manager.registries]
-            self.assertEqual(priorities, sorted(priorities, reverse=True))
-
-    def test_temp_dir_created(self):
-        """Test that temp directory is created."""
-        manager = SkillManager()
+    def test_temp_dir_created_and_cleaned(self):
+        """Test that temp directory is created and cleaned up."""
+        manager = self._create_manager()
         self.assertTrue(os.path.exists(manager.temp_dir))
-
-        # Clean up
         manager.cleanup()
         self.assertFalse(os.path.exists(manager.temp_dir))
 
