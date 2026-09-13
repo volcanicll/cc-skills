@@ -1,7 +1,8 @@
 ---
 name: image-to-hand-drawn
-category: creative
 description: Transform photographs into cohesive, high-quality hand-drawn illustrations while preserving the complete visual story of the original image, including people, landscapes, water, lakes, rivers, mountains, trees, grass, flowers, animals, buildings, architecture, vehicles, objects, and other meaningful environmental elements. Simplify visual noise without removing meaningful scene elements. Use when the user asks to convert a photo into a hand-drawn illustration, redraw a photograph in an illustrated style, or apply an illustration treatment that keeps the full scene intact.
+metadata:
+  category: creative
 ---
 
 # Image to Hand-Drawn Illustration

@@ -49,8 +49,9 @@ skill-name/
 ```markdown
 ---
 name: my-skill-name
-category: development
 description: 说明该 skill 的用途与触发场景，描述应具体、可触发
+metadata:
+  category: development
 ---
 
 # 标题
@@ -58,18 +59,18 @@ description: 说明该 skill 的用途与触发场景，描述应具体、可触
 正文指令...
 ```
 
-要求：
+要求（符合 VS Code skills 标准规范，顶层属性仅支持 `name`、`description`、`metadata` 等）：
 
 - `name` 必填，且必须与 skill 目录名完全一致
-- `category` 必填，所属分类（`creative`、`development`、`learning`、`meta` 之一）
 - `description` 必填，说明「做什么」与「何时使用」，建议包含触发关键词
+- `metadata.category` 必填，所属分类（`creative`、`development`、`learning`、`meta` 之一，置于 `metadata` 下以兼容 VS Code skills schema）
 - 可选的 `metadata.triggers` 用于补充触发词
 
 ## 基础设施
 
 ### Marketplace 同步
 
-`.claude-plugin/marketplace.json` 由 `scripts/sync_marketplace.py` 自动生成，根据各技能 frontmatter 的 `category` 自动归类生成插件（`<category>-tools`），**禁止手动编辑**。
+`.claude-plugin/marketplace.json` 由 `scripts/sync_marketplace.py` 自动生成，根据各技能 frontmatter 的 `metadata.category` 自动归类生成插件（`<category>-tools`），**禁止手动编辑**。
 
 常用命令：
 
@@ -91,7 +92,7 @@ python3 scripts/sync_marketplace.py --verbose
 ## 新增 skill 流程
 
 1. 以元 skill `skills/browser-login-session/` 为模板复制骨架
-2. 创建 `skills/<skill-name>/SKILL.md`，frontmatter 含合法的 `name`、`category` 与 `description`
+2. 创建 `skills/<skill-name>/SKILL.md`，frontmatter 含合法的 `name`、`description` 与 `metadata.category`
 3. 按 `references/skill-authoring.md` 清单补充 manifest / references / scripts / examples / tests
 4. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
 5. 更新 `README.md`：

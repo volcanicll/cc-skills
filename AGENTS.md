@@ -65,11 +65,11 @@ refactor(skill-manager): refactor package management logic
 
 - `<skill-name>`：英文短横线命名（kebab-case），例如 `image-to-hand-drawn`
 
-每个 skill 必须包含 `SKILL.md`，且 frontmatter 满足以下要求：
+每个 skill 必须包含 `SKILL.md`，且 frontmatter 满足以下要求（符合 VS Code skills 标准规范）：
 
 - `name`：必填，必须与 skill 目录名一致
-- `category`：必填，分类名，可选值为 `creative`、`development`、`learning`、`meta`
 - `description`：必填，说明该 skill 的用途与触发场景
+- `metadata.category`：必填，分类名，可选值为 `creative`、`development`、`learning`、`meta`（置于 `metadata` 下以兼容 VS Code skills schema 校验）
 
 ### Marketplace 维护
 
@@ -85,7 +85,7 @@ refactor(skill-manager): refactor package management logic
 
 ### 新增 skill 流程
 
-1. 创建 `skills/<skill-name>/SKILL.md`，frontmatter 含合法的 `name`、`category` 与 `description`
+1. 创建 `skills/<skill-name>/SKILL.md`，frontmatter 含合法的 `name`、`description` 与 `metadata.category`
 2. 运行 `python3 scripts/sync_marketplace.py` 同步 marketplace
 3. 更新 `README.md` 中的技能表格与仓库结构图
 4. 运行 `python3 scripts/sync_marketplace.py --check` 确认校验通过

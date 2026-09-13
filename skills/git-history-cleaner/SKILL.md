@@ -1,7 +1,8 @@
 ---
 name: git-history-cleaner
-category: development
 description: Clean and optimize Git repositories by removing large files from history. Use when Git repository is too large (over 100MB .git directory), when build artifacts like dist.tar.gz bloat the repository, or when you need to permanently remove sensitive files from Git history. This skill analyzes repository size, identifies problematic files, removes them from history using git-filter-repo, and compresses the repository.
+metadata:
+  category: development
 ---
 
 # Git History Cleaner

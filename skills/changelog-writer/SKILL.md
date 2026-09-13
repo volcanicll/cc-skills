@@ -1,8 +1,8 @@
 ---
 name: changelog-writer
-category: development
 description: Turn raw git commit history into polished, user-facing release notes or a CHANGELOG entry. Use when preparing a release, writing changelog entries, summarizing commits between two tags, generating "What's Changed" sections, or when asked to write release notes / 更新日志 / 发版说明. Groups commits by type, translates technical changes into user benefits, and outputs Keep a Changelog-compatible Markdown.
 metadata:
+  category: development
   triggers:
     - release notes
     - changelog

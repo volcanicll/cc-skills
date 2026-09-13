@@ -1,7 +1,8 @@
 ---
 name: skill-manager
-category: meta
 description: Package manager for Agent Skills. Allows listing, installing, and updating skills from remote Git registries locally.
+metadata:
+  category: meta
 ---
 
 # Skill Manager

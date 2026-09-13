@@ -8,7 +8,7 @@ This script is the single source of truth for the marketplace plugin layout:
 It validates every SKILL.md frontmatter:
 - 'name' required, must match skill directory name
 - 'description' required
-- 'category' required, must be one of: creative, development, learning, meta
+- 'category' required (under 'metadata.category' or 'category'), must be one of: creative, development, learning, meta
 
 Usage:
     python3 scripts/sync_marketplace.py            # rewrite marketplace.json
@@ -43,64 +43,71 @@ class SkillError(Exception):
     """Raised when a skill fails validation."""
 
 
+def _parse_yaml_value(val: str):
+    val = val.strip()
+    if len(val) >= 2 and ((val[0] == '"' and val[-1] == '"') or (val[0] == "'" and val[-1] == "'")):
+        return val[1:-1]
+    if val.lower() == "true":
+        return True
+    if val.lower() == "false":
+        return False
+    return val
+
+
 def _fallback_yaml_parse(text: str) -> dict:
     """Minimal stdlib-only YAML parser for SKILL.md frontmatter."""
-    res: dict = {}
     lines = text.splitlines()
+    res: dict = {}
+    stack: list[tuple[int, dict | list]] = [(-1, res)]
+
     i = 0
     num_lines = len(lines)
-
     while i < num_lines:
-        line = lines[i]
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
+        raw_line = lines[i]
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
             i += 1
             continue
 
-        match = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
-        if match:
-            key, val = match.groups()
-            val = val.strip()
-            if not val:
-                # Could be a nested dict or list
-                nested_lines: list[str] = []
-                i += 1
-                while i < num_lines:
-                    next_line = lines[i]
-                    if next_line.strip() and not next_line.startswith(" ") and not next_line.startswith("\t"):
-                        break
-                    nested_lines.append(next_line)
-                    i += 1
+        indent = len(line) - len(line.lstrip(" "))
+        stripped = line.strip()
 
-                # Check if list or dict
-                is_list = any(l.strip().startswith("- ") for l in nested_lines if l.strip())
-                if is_list:
-                    items: list[str] = []
-                    for nl in nested_lines:
-                        s = nl.strip()
-                        if s.startswith("- "):
-                            item_val = s[2:].strip()
-                            if len(item_val) >= 2 and item_val[0] in ('"', "'") and item_val[-1] == item_val[0]:
-                                item_val = item_val[1:-1]
-                            items.append(item_val)
-                    res[key] = items
-                else:
-                    nested_dict = {}
-                    for nl in nested_lines:
-                        nm = re.match(r"^\s+([A-Za-z0-9_-]+):\s*(.*)$", nl)
-                        if nm:
-                            nk, nv = nm.groups()
-                            nv = nv.strip()
-                            if len(nv) >= 2 and nv[0] in ('"', "'") and nv[-1] == nv[0]:
-                                nv = nv[1:-1]
-                            nested_dict[nk] = nv
-                    res[key] = nested_dict
-                continue
+        while len(stack) > 1 and indent <= stack[-1][0]:
+            stack.pop()
+
+        parent = stack[-1][1]
+
+        if stripped.startswith("- "):
+            item_val = stripped[2:].strip()
+            item = _parse_yaml_value(item_val)
+            if isinstance(parent, list):
+                parent.append(item)
+            i += 1
+            continue
+
+        match = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", stripped)
+        if match:
+            k, v = match.groups()
+            v = v.strip()
+            if not v:
+                is_next_list = False
+                for j in range(i + 1, num_lines):
+                    nl = lines[j].split("#", 1)[0].rstrip()
+                    if nl.strip():
+                        is_next_list = nl.strip().startswith("- ")
+                        break
+                container: dict | list = [] if is_next_list else {}
+                if isinstance(parent, dict):
+                    parent[k] = container
+                elif isinstance(parent, list):
+                    parent.append({k: container})
+                stack.append((indent, container))
             else:
-                if len(val) >= 2 and val[0] in ('"', "'") and val[-1] == val[0]:
-                    val = val[1:-1]
-                res[key] = val
+                parsed_val = _parse_yaml_value(v)
+                if isinstance(parent, dict):
+                    parent[k] = parsed_val
         i += 1
+
     return res
 
 
@@ -146,10 +153,16 @@ def validate_skill(skill_dir: Path, verbose: bool) -> dict:
             f"must match directory name '{name}'"
         )
 
-    category = meta.get("category")
+    # Support metadata.category (VS Code skills compliant) and fallback to root category
+    category = None
+    if isinstance(meta.get("metadata"), dict):
+        category = meta["metadata"].get("category")
+    if not category:
+        category = meta.get("category")
+
     if not category:
         raise SkillError(
-            f"{skill_dir.relative_to(REPO_ROOT)}: frontmatter 'category' is required "
+            f"{skill_dir.relative_to(REPO_ROOT)}: frontmatter 'metadata.category' (or 'category') is required "
             f"(must be one of: {', '.join(sorted(VALID_CATEGORIES))})"
         )
     if category not in VALID_CATEGORIES:
