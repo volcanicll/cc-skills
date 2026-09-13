@@ -1,0 +1,10 @@
+{
+  "name": "photo-to-editorial-poster",
+  "version": "1.0.0",
+  "description": "Turn each uploaded photo into a separate high-end editorial poster with split layout or illustration mode.",
+  "category": "creative",
+  "structure": [
+    "SKILL.md",
+    "manifest.json"
+  ]
+}

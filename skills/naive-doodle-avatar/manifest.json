@@ -1,0 +1,10 @@
+{
+  "name": "naive-doodle-avatar",
+  "version": "1.0.0",
+  "description": "Generate Naive Doodle Avatar images by transforming real-person portrait photos into cute childlike chibi doodle avatars.",
+  "category": "creative",
+  "structure": [
+    "SKILL.md",
+    "manifest.json"
+  ]
+}

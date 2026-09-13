@@ -3,6 +3,12 @@ name: photo-to-editorial-poster
 description: Turn each uploaded photo into a separate high-end editorial poster with a 3:4 canvas, original photo on top with subtle magazine-grade grading, and a naive retro hand-drawn editorial illustration on the bottom. Also supports horizontal split (photo left, illustration right) and illustration-only mode, plus asymmetric, framed, and card-style structure variants. Use when the user asks to convert photos into posters, split editorial posters, photo-plus-illustration posters, vintage travel/fashion poster designs, or similar image-to-poster transformations.
 metadata:
   category: creative
+  triggers:
+    - 编辑风海报
+    - 照片转海报
+    - 照片插画海报
+    - editorial poster
+    - photo poster
 ---
 
 # Photo to Editorial Poster

@@ -1,0 +1,10 @@
+{
+  "name": "image-to-hand-drawn",
+  "version": "1.0.0",
+  "description": "Transform photographs into cohesive, high-quality hand-drawn illustrations preserving the complete visual story.",
+  "category": "creative",
+  "structure": [
+    "SKILL.md",
+    "manifest.json"
+  ]
+}

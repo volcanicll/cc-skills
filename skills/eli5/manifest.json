@@ -1,0 +1,10 @@
+{
+  "name": "eli5",
+  "version": "1.0.0",
+  "description": "Explain any topic, concept, codebase, or system in extremely simple terms and produce an HTML visualization artifact.",
+  "category": "learning",
+  "structure": [
+    "SKILL.md",
+    "manifest.json"
+  ]
+}

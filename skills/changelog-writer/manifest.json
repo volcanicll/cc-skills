@@ -1,0 +1,17 @@
+{
+  "name": "changelog-writer",
+  "version": "1.0.0",
+  "description": "Turn raw git commit history into polished, user-facing release notes or a CHANGELOG entry.",
+  "category": "development",
+  "requires": {
+    "git": ">= 2.0"
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json",
+    "references/"
+  ],
+  "docs": {
+    "style-guide": "references/style-guide.md"
+  }
+}

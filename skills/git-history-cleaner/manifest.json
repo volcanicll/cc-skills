@@ -1,0 +1,15 @@
+{
+  "name": "git-history-cleaner",
+  "version": "1.0.0",
+  "description": "Clean and optimize Git repositories by removing large files from history using git-filter-repo.",
+  "category": "development",
+  "requires": {
+    "git": ">= 2.0",
+    "python": ">= 3.8",
+    "tools": ["git-filter-repo"]
+  },
+  "structure": [
+    "SKILL.md",
+    "manifest.json"
+  ]
+}

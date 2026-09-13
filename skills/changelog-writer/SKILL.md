@@ -113,5 +113,6 @@ Before delivering, verify:
 
 ## References
 
+- [Style Guide](references/style-guide.md) — Bad vs. good examples, merging commits, and tone guide
 - [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — category and format standard
 - [Conventional Commits](https://www.conventionalcommits.org/) — commit prefix reference
