@@ -2,6 +2,7 @@
 """从 git 仓库提取指定作者/时间段的提交，过滤噪音，输出为 JSON 供 AI 分组为工作项。"""
 import datetime
 import json
+import os
 import re
 import subprocess
 
@@ -50,7 +51,9 @@ def extract(cfg, since, until, author=None, repos=None, include_noise=False):
     result = {"since": since, "until": until, "author": author or "", "repos": []}
     total = 0
     for repo in repos:
-        r = _git(repo, since, until, author)
+        repo_expanded = os.path.expanduser(repo) if isinstance(repo, str) else repo
+        r = _git(repo_expanded, since, until, author)
+        r["repo"] = repo
         commits = r["commits"]
         if not include_noise:
             commits = [c for c in commits if not NOISE_PATTERNS.match(c["message"].strip())]

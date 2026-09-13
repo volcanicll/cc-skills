@@ -16,6 +16,7 @@ import time
 import urllib.parse
 import urllib.request
 
+import re
 from . import config
 from . import ws
 
@@ -26,7 +27,17 @@ DOMAIN_FILTER = ("srdcloud.cn",)
 PAGE_URL = "https://www.srdcloud.cn"
 
 
-class CDP:
+def mask_token(val, keep=4):
+    """脱敏展示 Token 或敏感字符串。"""
+    if not val:
+        return ""
+    s = str(val).strip()
+    if len(s) <= keep * 2:
+        return s[:1] + "***" + s[-1:] if len(s) > 2 else "***"
+    return f"{s[:keep]}***{s[-keep:]}"
+
+
+class CDPClient:
     """极简 CDP 客户端（浏览器级 WebSocket，纯标准库）。"""
 
     def __init__(self, ws_url, timeout=15):
@@ -41,6 +52,10 @@ class CDP:
             self._cdp.close()
         except Exception:
             pass
+
+
+# 兼容既有调用方与测试
+CDP = CDPClient
 
 
 def _active_port_candidates(cfg):
@@ -173,15 +188,76 @@ def _profile_in_use(profile_dir):
 def pick_free_port(preferred):
     """若 preferred 端口已被占用则顺延找空闲端口，避免误连他人调试实例。"""
     import socket
-    for port in range(int(preferred or 9222), int(preferred or 9222) + 100):
+    start = int(preferred or 9222)
+    for port in range(start, start + 100):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s.settimeout(0.3)
-            if s.connect_ex(("127.0.0.1", port)) != 0:
-                return port
+            s.bind(("127.0.0.1", port))
+            return port
+        except OSError:
+            continue
         finally:
             s.close()
-    return int(preferred or 9222)  # 全被占用时按原端口尝试，让启动失败显性报错
+    return start
+
+
+def _profile_dirs_to_check(cfg):
+    """返回用于检测浏览器是否正在运行的 profile 目录列表。"""
+    import platform
+    cands = []
+    explicit = cfg.get("chrome_profile_dir")
+    if explicit:
+        cands.append(os.path.expanduser(explicit))
+    sysname = platform.system()
+    if sysname == "Windows":
+        local = os.environ.get("LOCALAPPDATA", "") or os.path.expanduser(r"~\AppData\Local")
+        cands += [
+            os.path.join(local, "Google", "Chrome", "User Data"),
+            os.path.join(local, "Microsoft", "Edge", "User Data"),
+        ]
+    elif sysname == "Darwin":
+        cands += [
+            os.path.expanduser("~/Library/Application Support/Google/Chrome"),
+            os.path.expanduser("~/Library/Application Support/Microsoft Edge"),
+        ]
+    else:
+        cands += [
+            os.path.expanduser("~/.config/google-chrome"),
+            os.path.expanduser("~/.config/microsoft-edge"),
+        ]
+    return [c for c in cands if c]
+
+
+def is_browser_running(cfg=None):
+    """检测 Chrome/Edge/Chromium 浏览器是否正在运行。"""
+    cfg = cfg or {}
+    for cand in _profile_dirs_to_check(cfg):
+        if _profile_in_use(cand):
+            return True
+    import subprocess
+    try:
+        if os.name == "nt":
+            out = subprocess.run(["tasklist"], capture_output=True, text=True, timeout=2)
+            procs = out.stdout.lower()
+            return "chrome.exe" in procs or "msedge.exe" in procs
+        else:
+            out = subprocess.run(["ps", "-A", "-o", "comm="], capture_output=True, text=True, timeout=2)
+            names = [os.path.basename(l.strip()).lower() for l in out.stdout.splitlines()]
+            for n in names:
+                if any(b in n for b in ("google chrome", "microsoft edge", "chrome", "chromium", "msedge")):
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def get_inspect_url(cfg=None):
+    """返回浏览器对应的 inspect 调试管理页面 URL。"""
+    cfg = cfg or {}
+    browser_pref = str(cfg.get("browser", "")).lower()
+    if "edge" in browser_pref:
+        return "edge://inspect/#devices"
+    return "chrome://inspect/#devices"
 
 
 def launch_debug_browser(cfg, page_url=PAGE_URL):
@@ -241,6 +317,15 @@ def _find_page(cdp):
     return next((t for t in targets if t["type"] == "page" and "srdcloud.cn" in t.get("url", "")), None)
 
 
+def open_page(cdp, url=PAGE_URL):
+    """在已有调试浏览器中打开指定页面。"""
+    try:
+        res = cdp.send("Target.createTarget", {"url": url})
+        return res.get("targetId")
+    except Exception:
+        return None
+
+
 def _extract(cdp, cfg, page):
     """从指定页面 target 提取鉴权数据；未登录（缺 auth_value/emp_no）时返回 None。"""
     page_url = page["url"]
@@ -252,7 +337,11 @@ def _extract(cdp, cfg, page):
     expr = ("JSON.stringify({local:Object.fromEntries(Object.entries(localStorage)),"
             "session:Object.fromEntries(Object.entries(sessionStorage))})")
     r = cdp.send("Runtime.evaluate", {"expression": expr, "returnByValue": True}, session_id=sid)
-    storage = json.loads(r.get("result", {}).get("result", {}).get("value") or "{}")
+    res_obj = r.get("result", {}) if isinstance(r, dict) else {}
+    if isinstance(res_obj, dict) and "result" in res_obj and isinstance(res_obj["result"], dict):
+        res_obj = res_obj["result"]
+    raw_storage = res_obj.get("value") if isinstance(res_obj, dict) else None
+    storage = json.loads(raw_storage or "{}")
     local = storage.get("local", {}) or {}
 
     def cookie_val(name):
@@ -266,6 +355,31 @@ def _extract(cdp, cfg, page):
 
     if not auth_value or not emp_no:
         return None
+
+    # 从 URL 推导 workspace
+    workspace = cfg.get("workspace", "")
+    if not workspace or str(workspace).strip().startswith("YOUR_"):
+        m = re.search(r"/(?:workspaces|workspace|zxwim)/([^/?#]+)", page_url)
+        if m:
+            workspace = m.group(1)
+
+    # 尝试从 storage 推导姓名
+    assignee_name = cfg.get("assignee_name", "")
+    if not assignee_name or str(assignee_name).strip().startswith("YOUR_"):
+        for key in ("user", "userInfo", "loginUser", "currentUser", "account"):
+            raw_val = local.get(key) or storage.get("session", {}).get(key)
+            if raw_val:
+                try:
+                    obj = json.loads(raw_val) if isinstance(raw_val, str) else raw_val
+                    if isinstance(obj, dict):
+                        cand = (obj.get("name") or obj.get("userName") or
+                                obj.get("realName") or obj.get("nickName"))
+                        if cand:
+                            assignee_name = str(cand).strip()
+                            break
+                except Exception:
+                    pass
+
     headers = {
         "x-api-key": cfg.get("api_key", ""),
         "x-auth-value": auth_value,
@@ -278,9 +392,10 @@ def _extract(cdp, cfg, page):
     }
     return {
         "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "workspace": cfg.get("workspace", ""),
+        "workspace": workspace or cfg.get("workspace", ""),
         "team_id": team_id,
         "project_id": project_id,
+        "assignee_name": assignee_name or cfg.get("assignee_name", ""),
         "headers": headers,
         "cookie_header": "; ".join(f"{c['name']}={c['value']}" for c in cookies),
         "cookies": {c["name"]: c["value"] for c in cookies},
@@ -300,9 +415,15 @@ def fetch_auth(cfg, ws_url=None, wait_login=0):
     cdp = CDP(ws_url)
     try:
         deadline = time.time() + max(0, wait_login)
+        opened = False
         while True:
             page = _find_page(cdp)
             if page is None:
+                if not opened and wait_login > 0:
+                    open_page(cdp, PAGE_URL)
+                    opened = True
+                    time.sleep(1)
+                    continue
                 if time.time() < deadline:
                     print("⏳ 等待打开研发云页面…（若已弹出浏览器，请完成登录）")
                     time.sleep(2)
@@ -315,9 +436,25 @@ def fetch_auth(cfg, ws_url=None, wait_login=0):
                 raise RuntimeError(
                     "鉴权数据不完整（缺少 auth_value/emp_no），请确认已在打开的浏览器中登录研发云")
             print("⏳ 检测到未登录，请在弹出的浏览器窗口中完成登录…")
-            time.sleep(3)
+            time.sleep(2)
     finally:
         cdp.close()
+
+
+def auto_reauth(cfg):
+    """尝试通过已有的 CDP 调试端口静默刷新鉴权并落盘。
+
+    仅当能直接发现 CDP 调试实例时执行，不弹窗、不拉起新进程；
+    成功返回刷新后的 auth 字典，失败返回 None。
+    """
+    try:
+        ws_url = discover_ws_url(cfg)
+        new_auth = fetch_auth(cfg, ws_url=ws_url, wait_login=0)
+        auth_file = cfg.get("auth_file", AUTH_FILE)
+        save_auth(new_auth, auth_file)
+        return new_auth
+    except Exception:
+        return None
 
 
 def manual_auth(cfg, cookie=None, auth_value=None, emp_no=None):
@@ -355,6 +492,7 @@ def manual_auth(cfg, cookie=None, auth_value=None, emp_no=None):
         "workspace": cfg.get("workspace", ""),
         "team_id": cfg.get("team_id", ""),
         "project_id": cfg.get("project_id", ""),
+        "assignee_name": cfg.get("assignee_name", ""),
         "headers": headers,
         "cookie_header": cookie,
         "cookies": cookies,
@@ -377,13 +515,26 @@ def auth_is_stale(auth, max_hours=12):
 
 def save_auth(auth, path=AUTH_FILE):
     """保存鉴权数据（目录 0700、文件 0600，含会话 Cookie 与 API Key）。"""
-    config.write_private_file(path, json.dumps(auth, ensure_ascii=False, indent=2))
-    return path
+    try:
+        config.write_private_file(path, json.dumps(auth, ensure_ascii=False, indent=2))
+        return path
+    except (PermissionError, OSError) as e:
+        fallback_path = os.path.abspath(".rdc-auth.json")
+        try:
+            config.write_private_file(fallback_path, json.dumps(auth, ensure_ascii=False, indent=2))
+            print(f"⚠ 默认鉴权路径写入受限（{e}），已自动回退保存至本地：{fallback_path}")
+            return fallback_path
+        except Exception:
+            raise e
 
 
 def load_auth(path=AUTH_FILE):
     if not os.path.exists(path):
-        raise FileNotFoundError(
-            f"未找到登录信息文件 {path}。请先获取研发云登录信息，再重试本命令。")
+        fallback_path = os.path.abspath(".rdc-auth.json")
+        if os.path.exists(fallback_path):
+            path = fallback_path
+        else:
+            raise FileNotFoundError(
+                f"未找到登录信息文件 {path}。请先获取研发云登录信息，再重试本命令。")
     with open(path) as f:
         return json.load(f)

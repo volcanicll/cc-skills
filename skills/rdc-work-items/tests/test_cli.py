@@ -9,6 +9,8 @@ import sys
 import tempfile
 
 SCRIPTS = os.path.join(os.path.dirname(__file__), "..", "scripts")
+if SCRIPTS not in sys.path:
+    sys.path.insert(0, SCRIPTS)
 
 
 def _run(*args, cwd):
@@ -512,6 +514,60 @@ def test_update_status_ids_file_conflict():
         raise AssertionError("同时给出 file/--ids/--ids-file 应报错")
     except SystemExit as e:
         assert "只能二选一" in str(e)
+
+
+def test_cmd_auth_scenario_1_and_deduction():
+    """测试场景 1：CDP 已开启且已登录时，自动推导工作区与姓名，脱敏展示。"""
+    from unittest.mock import patch, MagicMock
+    from rdc import auth, config, cli
+    tmp = tempfile.mkdtemp(prefix="rdc-auth-test-")
+    auth_path = os.path.join(tmp, "auth.json")
+    fake_cfg = dict(config.DEFAULTS, auth_file=auth_path, workspace="YOUR_WORKSPACE", assignee_name="YOUR_NAME")
+
+    class MockCDP:
+        def __init__(self, ws_url): pass
+        def close(self): pass
+        def send(self, method, params=None, session_id=None, timeout=30):
+            if method == "Target.getTargets":
+                return {"targetInfos": [{"type": "page", "targetId": "P1", "url": "https://www.srdcloud.cn/workspaces/AUTO_WS_01/workItems"}]}
+            if method == "Target.attachToTarget":
+                return {"sessionId": "S1"}
+            if method == "Network.getAllCookies":
+                return {"cookies": [
+                    {"name": "prodtoken", "value": "tok_very_secret_12345678", "domain": ".srdcloud.cn"},
+                    {"name": "CTWIMAPPDPGSSOUser", "value": "emp_8888", "domain": ".srdcloud.cn"}
+                ]}
+            if method == "Runtime.evaluate":
+                return {"result": {"type": "string", "value": json.dumps({"local": {"EO_SPACE_KEY": "space_888", "userInfo": json.dumps({"name": "李四"})}})}}
+            return {}
+
+    with patch.object(auth, "discover_ws_url", return_value="ws://127.0.0.1:9222/devtools/browser/xyz"), \
+         patch.object(auth, "CDP", MockCDP), \
+         patch.object(cli, "_cfg", return_value=fake_cfg):
+        args = MagicMock(manual=False, no_launch=False, wait=0, config=None)
+        cli.cmd_auth(args)
+
+    saved = auth.load_auth(auth_path)
+    assert saved["workspace"] == "AUTO_WS_01"
+    assert saved["assignee_name"] == "李四"
+    assert saved["emp_no"] == "emp_8888"
+
+
+def test_main_401_auto_reauth():
+    """测试遇到 401/403 平台错误时，静默调用 auto_reauth 刷新凭据并自动重试。"""
+    from unittest.mock import patch, MagicMock
+    from rdc import auth, cli, net
+    retry_called = [0]
+    def mock_api_action(args):
+        retry_called[0] += 1
+        if retry_called[0] == 1:
+            raise net.HttpError(401, b"Unauthorized token expired")
+
+    fake_cmd_args = MagicMock(func=mock_api_action, config=None)
+    with patch.object(auth, "auto_reauth", return_value={"headers": {"x-auth-value": "new_tok"}}), \
+         patch("argparse.ArgumentParser.parse_args", return_value=fake_cmd_args):
+        cli.main(["doctor"])
+    assert retry_called[0] == 2
 
 
 if __name__ == "__main__":

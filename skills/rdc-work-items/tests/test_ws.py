@@ -77,13 +77,8 @@ def _free_port():
     return port
 
 
-def ws_server(port):
-    """握手 → 发 ping → 收客户端消息 → 回同一 id 的 result → 等关闭。"""
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("127.0.0.1", port))
-    srv.listen(1)
-    conn, _ = srv.accept()
+def ws_session(conn):
+    """处理一次 WebSocket 会话：握手 → 接收客户端消息 → 发送 ping → 接收 pong → 返回响应。"""
     try:
         req = _read_http_request(conn)
         key = ""
@@ -110,19 +105,45 @@ def ws_server(port):
             pass
     finally:
         conn.close()
-        srv.close()
 
 
-def _run_server(port):
-    t = threading.Thread(target=ws_server, args=(port,), daemon=True)
+def _make_client_and_server(path="/devtools/browser/abc"):
+    """创建已连通的 WebSocket 客户端及测试服务端后台线程。
+
+    优先使用 socket.socketpair()（无沙箱网络权限限制，速度快）；
+    不可用时回退到 TCP 监听服务。
+    """
+    if hasattr(socket, "socketpair"):
+        try:
+            client_sock, srv_sock = socket.socketpair()
+            t = threading.Thread(target=ws_session, args=(srv_sock,), daemon=True)
+            t.start()
+            conn = wsmod.WebSocket(f"ws://127.0.0.1{path}", timeout=5, sock=client_sock)
+            return conn, t
+        except OSError:
+            pass
+
+    port = _free_port()
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", port))
+    srv.listen(1)
+
+    def _srv_thread():
+        try:
+            c, _ = srv.accept()
+            ws_session(c)
+        finally:
+            srv.close()
+
+    t = threading.Thread(target=_srv_thread, daemon=True)
     t.start()
-    return t
+    conn = wsmod.WebSocket(f"ws://127.0.0.1:{port}{path}", timeout=5)
+    return conn, t
 
 
 def test_ws_echo_and_pong():
-    port = _free_port()
-    t = _run_server(port)
-    conn = wsmod.WebSocket(f"ws://127.0.0.1:{port}/devtools/browser/abc", timeout=5)
+    conn, t = _make_client_and_server("/devtools/browser/abc")
     try:
         conn.send_json({"id": 7, "method": "Test.echo", "params": {}})
         resp = conn.recv_json()
@@ -135,9 +156,7 @@ def test_ws_echo_and_pong():
 
 
 def test_cdp_call():
-    port = _free_port()
-    t = _run_server(port)
-    conn = wsmod.WebSocket(f"ws://127.0.0.1:{port}/devtools/page/x", timeout=5)
+    conn, t = _make_client_and_server("/devtools/page/x")
     cdp = wsmod.CDP(conn)
     try:
         result = cdp.call("Test.echo", {"x": 1})

@@ -44,13 +44,18 @@ def _col_index(ref):
     return n
 
 
-def _cell_ref(col, row):
+def col_letter(col):
+    """1-based column index to Excel column letters ('A', 'B', ... 'Z', 'AA', etc.)."""
     s = ""
     c = col
     while c:
         c, r = divmod(c - 1, 26)
         s = chr(65 + r) + s
-    return f"{s}{row}"
+    return s
+
+
+def _cell_ref(col, row):
+    return f"{col_letter(col)}{row}"
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +80,7 @@ def _cell_xml(ref, value, style):
 def write_table(out_path, headers, rows, sheet_name="导出结果", widths=None):
     """生成最小 xlsx。rows 为数据行（不含表头），widths 为 {列字母: 宽度} 或列表。"""
     if isinstance(widths, (list, tuple)):
-        widths = {_cell_ref(i + 1, 1)[0]: w for i, w in enumerate(widths)}
+        widths = {col_letter(i + 1): w for i, w in enumerate(widths)}
 
     cols_xml = ""
     if widths:

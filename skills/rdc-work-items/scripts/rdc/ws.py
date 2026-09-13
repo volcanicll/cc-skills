@@ -25,13 +25,13 @@ class WebSocketError(Exception):
 class WebSocket:
     """极简 WebSocket 客户端（仅 ws://，客户端帧掩码，自动应答 ping）。"""
 
-    def __init__(self, url, timeout=15):
+    def __init__(self, url, timeout=15, sock=None):
         parsed = urllib.parse.urlparse(url)
         if parsed.scheme != "ws":
             raise WebSocketError(f"仅支持 ws:// 地址: {url}")
         host = parsed.hostname or "127.0.0.1"
         port = parsed.port or 80
-        self.sock = socket.create_connection((host, port), timeout=timeout)
+        self.sock = sock if sock is not None else socket.create_connection((host, port), timeout=timeout)
         key = base64.b64encode(os.urandom(16)).decode()
         path = parsed.path or "/"
         if parsed.query:

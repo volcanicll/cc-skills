@@ -67,7 +67,7 @@ def build(cfg, items, out_path, status=None, updated_at=None, created_at=None):
         rows.append([vals.get(h, "") for h in columns])
 
     widths = {
-        chr(65 + i): (schema.WIDE_WIDTH if h in schema.WIDE_COLUMNS else schema.DEFAULT_WIDTH)
+        xlsx.col_letter(i + 1): (schema.WIDE_WIDTH if h in schema.WIDE_COLUMNS else schema.DEFAULT_WIDTH)
         for i, h in enumerate(columns)
     }
     xlsx.write_table(out_path, columns, rows, sheet_name="导出结果", widths=widths)

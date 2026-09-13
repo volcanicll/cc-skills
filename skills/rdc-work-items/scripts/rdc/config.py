@@ -34,6 +34,17 @@ def global_config_path():
     return os.path.expanduser("~/.config/rdc-work-items.yaml")
 
 
+def default_chrome_profile_dir():
+    """多平台 Chrome 默认数据目录"""
+    import platform
+    plat = platform.system()
+    if plat == "Darwin":
+        return "~/Library/Application Support/Google/Chrome"
+    elif plat == "Windows":
+        return r"~\AppData\Local\Google\Chrome\User Data"
+    return "~/.config/google-chrome"
+
+
 DEFAULTS = {
     "auth_file": os.path.join(user_config_dir(), "auth.json"),  # 鉴权数据（用户配置目录，勿入库）
     # ---- 研发云平台 ----
@@ -59,7 +70,7 @@ DEFAULTS = {
     "state_field_id": "63f96af738aa624d3b708445",  # System_State 字段元数据 id
     # ---- CDP / Chrome ----
     "chrome_debug_port": 9222,
-    "chrome_profile_dir": "~/Library/Application Support/Google/Chrome",
+    "chrome_profile_dir": default_chrome_profile_dir(),
     "browser": "auto",                 # 自动启动时选择浏览器: auto/chrome/edge
     "chrome_path": "",                 # 浏览器可执行文件绝对路径（自动探测失败时指定）
     "auth_wait_seconds": 120,          # auth 自动启动后等待登录的最长秒数（0=不等待）
@@ -112,9 +123,11 @@ def load_config(path=None):
             cfg.update(data)
             break
     # 路径展开
-    for k in ("chrome_profile_dir",):
+    for k in ("chrome_profile_dir", "auth_file"):
         if isinstance(cfg.get(k), str):
             cfg[k] = os.path.expanduser(cfg[k])
+    if isinstance(cfg.get("repos"), list):
+        cfg["repos"] = [os.path.expanduser(r) if isinstance(r, str) else r for r in cfg["repos"]]
     return cfg
 
 

@@ -91,7 +91,7 @@ def prepare(src, out, status="新建", keep_ids=False, keep_updated_time=False):
             row.append(val)
         out_rows.append(row)
 
-    widths = {chr(65 + j): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
+    widths = {xlsx.col_letter(j + 1): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
     xlsx.write_table(out, keep, out_rows, sheet_name="导出结果", widths=widths)
     return {"items": len(out_rows), "status": status, "columns": keep,
             "warnings": warnings, "out": out}
@@ -157,7 +157,7 @@ def strip_unsupported(src, out, status=None):
             row.append(val)
         out_rows.append(row)
 
-    widths = {chr(65 + j): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
+    widths = {xlsx.col_letter(j + 1): (90 if h == "详细说明" else 22) for j, h in enumerate(keep)}
     xlsx.write_table(out, keep, out_rows, sheet_name="导出结果", widths=widths)
     return {"items": len(out_rows), "status": status, "columns": keep,
             "warnings": warnings, "out": out}

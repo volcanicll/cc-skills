@@ -163,6 +163,57 @@ def test_pick_free_port_avoids_busy_port():
         listener.close()
 
 
+def test_mask_token():
+    assert auth.mask_token("1234567890") == "1234***7890"
+    assert auth.mask_token("abc") == "a***c"
+    assert auth.mask_token("") == ""
+    assert auth.mask_token(None) == ""
+
+
+def test_get_inspect_url():
+    assert auth.get_inspect_url({"browser": "edge"}) == "edge://inspect/#devices"
+    assert auth.get_inspect_url({"browser": "chrome"}) == "chrome://inspect/#devices"
+    assert auth.get_inspect_url({}) == "chrome://inspect/#devices"
+
+
+def test_workspace_and_name_inference():
+    class InferredCDP(FakeCDP):
+        def send(self, method, params=None, session_id=None, timeout=30):
+            if method == "Target.getTargets":
+                return {"targetInfos": [
+                    {"type": "page", "targetId": "T1",
+                     "url": "https://www.srdcloud.cn/workspaces/WS_INFERRED_01/workItems?teamId=t1"}
+                ]}
+            if method == "Target.attachToTarget":
+                return {"sessionId": "S1"}
+            if method == "Network.getAllCookies":
+                return {"cookies": [
+                    {"name": "prodtoken", "value": "secret_tok_123456", "domain": ".srdcloud.cn"},
+                    {"name": "CTWIMAPPDPGSSOUser", "value": "emp_007", "domain": ".srdcloud.cn"},
+                ]}
+            if method == "Runtime.evaluate":
+                return {"result": {"type": "string",
+                                   "value": json.dumps({
+                                       "local": {
+                                           "EO_SPACE_KEY": "space_99",
+                                           "userInfo": json.dumps({"name": "张三", "userName": "zhangsan"})
+                                       },
+                                       "session": {}
+                                   })}}
+            return {}
+
+    orig = auth.CDP
+    auth.CDP = InferredCDP
+    try:
+        cfg = {"workspace": "YOUR_WORKSPACE", "assignee_name": "YOUR_NAME"}
+        res = auth.fetch_auth(cfg, ws_url="ws://127.0.0.1:1/test")
+        assert res["workspace"] == "WS_INFERRED_01"
+        assert res["assignee_name"] == "张三"
+        assert res["project_id"] == "space_99"
+    finally:
+        auth.CDP = orig
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

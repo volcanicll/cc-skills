@@ -39,7 +39,7 @@ def _make_platform_export(rows):
         cells = []
         for ci in range(len(headers)):
             v = r[ci] if ci < len(r) else ""
-            col = chr(65 + ci)
+            col = xlsx.col_letter(ci + 1)
             cells.append(f'<c r="{col}{row_idx}" t="s"><v>{_sid(v)}</v></c>')
         return f'<row r="{row_idx}">{"".join(cells)}</row>'
 

@@ -32,13 +32,15 @@ metadata:
 
 - **操作系统**：macOS / Windows / Linux 均可（Python 脚本跨平台）。
 - **运行环境**：Python 3.9+，**无需安装任何第三方包**（标准库即可）。
-- **浏览器**：Chrome / Edge / Chromium。`auth` 会自动发现已开调试端口的浏览器；
-  没有时自动启动一个带调试端口的浏览器（复用配置的 `chrome_profile_dir` 保持登录态，
-  占用中则回退到独立配置目录，首次需登录一次）；也可 `auth --manual` 手动粘贴 Cookie。
+- **浏览器**：Chrome / Edge / Chromium。`auth` 采用**三级渐进式授权策略**：
+  1. **场景 1（浏览器已开且开启 CDP）**：直接静默连接并提取登录态，自动推导工作区与姓名，0 弹窗 0 询问，极速完成；
+  2. **场景 2（浏览器已开但未开 CDP）**：终端提示 `chrome://inspect/#devices`（或 Edge `edge://inspect/#devices`）开启指引，并支持按 M 键秒切手动粘贴 Cookie 模式；
+  3. **场景 3（浏览器未打开）**：自动以 CDP 调试模式启动浏览器，直接加载日常用户目录（自带已有登录态），无需扫码/重新输入密码。
+  - 遇到 401/403 登录态失效时，API 自动尝试静默触发 CDP 重新提取并重试一次；控制台敏感 Token 自动脱敏掩码输出。
 - **Windows**：用 `py -3 scripts\rdc_workflow`（或 `scripts/rdc_workflow.cmd`）代替 `python3 scripts/rdc_workflow`；
-  在 `rdc-config.yaml` 的 `chrome_profile_dir` 填 Windows 用户数据目录；
+  在 `rdc-config.yaml` 的 `chrome_profile_dir` 填 Windows 用户数据目录（默认已跨平台自适应）；
   留空时脚本自动按系统探测 Chrome/Edge 的 `DevToolsActivePort` 或 HTTP 探测调试端口。
-- **git**：`stats` 需要本机已克隆对应仓库，仓库路径在 `rdc-config.yaml` 的 `repos` 中配置。
+- **git**：`stats` 需要本机已克隆对应仓库，仓库路径在 `rdc-config.yaml` 的 `repos` 中配置（支持 `~` 展开）。
 - **全局配置与鉴权（多平台）**：首次配置写入全局配置
   `~/.config/rdc-work-items.yaml`（Windows 为 `%APPDATA%\rdc-work-items.yaml`）；
   鉴权文件保存到 `~/.config/rdc-work-items/auth.json`（Windows 为 `%APPDATA%\rdc-work-items\auth.json`），
@@ -46,12 +48,12 @@ metadata:
 
 ## 一次性准备（每个环境做一次）
 
-1. 获取登录信息（自动发现调试浏览器；没有则自动启动并等待登录；也可 `auth --manual` 粘贴 Cookie）：
+1. 获取登录信息（开箱即用：自动发现/自动启动浏览器，或 `auth --manual` 粘贴 Cookie）：
    ```bash
    python3 scripts/rdc_workflow --config rdc-config.yaml auth
    ```
-   登录信息（员工号/项目/团队等）会从浏览器自动提取并保存到鉴权文件。
-2. 补齐配置：登录信息提取后，若还缺工作区/API Key/团队名称等，工具会以**自然语言**逐个提示你提供，
+   登录信息（员工号/工作区/项目/团队/姓名等）会从浏览器自动提取并保存到鉴权文件。
+2. 补齐配置：登录信息提取后，若还缺 API Key/团队名称等，工具会以**自然语言**逐个提示你提供，
    并询问是否保存为全局配置（`~/.config/rdc-work-items.yaml`，Windows 为 `%APPDATA%\rdc-work-items.yaml`），
    之后自动加载（无需 `--config`）。也可以运行首次配置向导（回车用默认值，或 `--no-input` 非交互）：
    ```bash
@@ -118,6 +120,35 @@ team_name / work_item_type / task_type / status_flow / initial_status / wic_base
 wic_version / work_item_type_key / state_field_id / chrome_debug_port / chrome_profile_dir /
 browser / chrome_path / auth_wait_seconds / auth_max_age_hours / file_url_hosts / git_author / repos /
 excel_columns / auth_file`。其中 `excel_columns` 仅支持在平台标准列内增删/排序（生成与导入均以标准列集为准，非标准列会报错或被忽略）。
+
+## work_items.json 格式规范与排期指引
+
+`build-excel` 接收标准的 JSON 文件（可由 AI 对 `stats` 输出的提交记录进行归纳分组生成），其标准结构如下：
+
+```json
+{
+  "work_items": [
+    {
+      "title": "营销域订单结算异常修复与自动化重试逻辑开发",
+      "description": "修复跨模块订单结算状态不一致导致的结算中断异常，补充超时自动化重试机制与告警接入",
+      "start": "2026-08-03",
+      "end": "2026-08-04",
+      "hours": 12
+    }
+  ]
+}
+```
+
+### 字段说明与排期规则
+
+1. **`title`**（必填）：工作项标题，需简洁明确，反映业务或技术模块成果。
+2. **`description`**（选填）：详细说明，可罗列具体修改点或关联提交摘要。
+3. **`start` / `end`**（必填，`YYYY-MM-DD`）：
+   - 计划开始日期与实际完成日期。
+   - **排期建议**：严格安排在**法定工作日**（避开周六、周日及法定节假日）；
+   - 单日工作项总工时建议控制在 8 小时左右（例如两项各 4 小时，或一项 8 小时）。
+4. **`hours`**（必填，整数或浮点数）：
+   - **工时红线**：单个工作项工时范围必须在 `1 <= hours <= 24`。超过 24 小时或小于 1 小时会被校验拦截。跨多天任务需合理分配。
 
 ## 目录结构
 

@@ -45,7 +45,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from rdc import __version__, api, auth, config, doctor, excelgen, prepare, stats
+from rdc import __version__, api, auth, config, doctor, excelgen, net, prepare, stats
 
 
 def _cfg(args):
@@ -164,21 +164,52 @@ def _run_auth_fetch(cfg, args):
                              auth_value=getattr(args, "auth_value", None),
                              emp_no=getattr(args, "emp_no", None))
         return a, False
+
+    ws_url = None
+    # 场景 1：已开启 CDP 调试端口
     try:
         ws_url = auth.discover_ws_url(cfg)
         launched = False
-        print("ℹ 将复用本机已开启调试端口的浏览器读取登录态。"
-              "请确认这是你自己的浏览器（共享主机上勿复用他人调试实例，必要时改用 auth --manual）。")
+        print("ℹ 检测到已开启 CDP 调试端口的浏览器，直接提取登录态…")
     except RuntimeError:
+        pass
+
+    # 场景 2：浏览器已在运行，但未开启 CDP
+    if not ws_url:
         if getattr(args, "no_launch", False):
-            raise
-        info = auth.launch_debug_browser(cfg)
-        launched = True
-        print(f"🚀 已自动启动浏览器（{os.path.basename(info['browser'])}，端口 {info['port']}），"
-              "正在等待调试端口…")
-        launch_cfg = dict(cfg)
-        launch_cfg["chrome_debug_port"] = info["port"]
-        ws_url = auth.wait_for_debug_port(launch_cfg, timeout=60)
+            raise RuntimeError("未发现开启调试端口的浏览器，且指定了 --no-launch 禁止自动启动")
+
+        if auth.is_browser_running(cfg):
+            inspect_url = auth.get_inspect_url(cfg)
+            print(f"\n💡 检测到浏览器已在运行，但尚未开启 CDP 远程调试端口。")
+            print(f"【推荐开启方式】：")
+            print(f"  1. 在浏览器地址栏打开：{inspect_url}")
+            print(f"     勾选「Discover network targets」，确保 localhost:9222 已启用；")
+            print(f"  2. 或完全退出浏览器后重新运行命令，将自动以调试模式拉起（自带日常登录态）；")
+            print(f"  3. 亦可切入手动粘贴 Cookie 模式（无需开启 CDP）。\n")
+            if sys.stdin.isatty():
+                ans = input("请按回车重试检测，或输入 M 切入手动粘贴模式 [Enter/M]: ").strip().lower()
+                if ans == "m":
+                    a = auth.manual_auth(cfg, cookie=getattr(args, "cookie", None),
+                                         auth_value=getattr(args, "auth_value", None),
+                                         emp_no=getattr(args, "emp_no", None))
+                    return a, False
+                try:
+                    ws_url = auth.discover_ws_url(cfg)
+                    launched = False
+                except RuntimeError:
+                    pass
+
+        # 场景 3：浏览器未运行（或用户已退出浏览器）：以 CDP 模式启动浏览器（复用原生配置目录保持日常登录态）
+        if not ws_url:
+            info = auth.launch_debug_browser(cfg)
+            launched = True
+            print(f"🚀 已自动启动浏览器（{os.path.basename(info['browser'])}，端口 {info['port']}），"
+                  "正在等待调试端口…")
+            launch_cfg = dict(cfg)
+            launch_cfg["chrome_debug_port"] = info["port"]
+            ws_url = auth.wait_for_debug_port(launch_cfg, timeout=60)
+
     wait = getattr(args, "wait", None)
     if wait is None:
         wait = cfg.get("auth_wait_seconds", 120) if launched else 0
@@ -340,9 +371,16 @@ def cmd_auth(args):
     cfg = _cfg(args)
     a, launched = _run_auth_fetch(cfg, args)
     path = auth.save_auth(a, cfg.get("auth_file", "auth.json"))
+    masked_token = auth.mask_token(a.get("auth_value", ""))
     print(f"✅ 登录信息已保存到 {path}")
     print(f"   员工号: {a['emp_no']} | 项目: {a['project_id']} | 团队: {a['team_id']} | 工作区: {a['workspace']}")
-    print(f"   提取时间: {a['fetched_at']} | 来源: {a.get('source', 'cdp')}")
+    if a.get("assignee_name"):
+        print(f"   姓名: {a['assignee_name']}")
+    print(f"   Token: {masked_token} | 提取时间: {a['fetched_at']} | 来源: {a.get('source', 'cdp')}")
+    # 自动将提取到的信息填入 runtime cfg
+    for k in ("workspace", "assignee_name", "project_id", "team_id"):
+        if a.get(k) and _is_placeholder(cfg.get(k)):
+            cfg[k] = a[k]
     _collect_missing_after_auth(cfg)
 
 
@@ -714,7 +752,7 @@ def cmd_flow(args):
 
 
 # ---------- 参数 ----------
-def main():
+def main(argv=None):
     p = argparse.ArgumentParser(prog="rdc", description="研发云工作项自动化工具（配置驱动，纯标准库）")
     p.add_argument("--config", default=None, help="配置文件路径（yaml/json），默认自动查找 rdc-config.yaml 或全局配置")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -832,8 +870,20 @@ def main():
     pf.add_argument("--yes", action="store_true", help="确认执行导入与状态流转（否则仅校验/预览）")
     pf.set_defaults(func=cmd_flow)
 
-    args = p.parse_args()
-    args.func(args)
+    args = p.parse_args(argv)
+    try:
+        args.func(args)
+    except net.HttpError as e:
+        if e.status in (401, 403):
+            cfg = _cfg(args)
+            print("⚠ 研发云登录凭据失效 (HTTP 401/403)，尝试通过 CDP 静默刷新…")
+            new_auth = auth.auto_reauth(cfg)
+            if new_auth:
+                print("🔄 登录凭据已静默刷新，正在重试操作…")
+                args.func(args)
+                return
+            raise SystemExit("❌ 研发云登录态已失效 (HTTP 401/403)。请运行 auth 命令重新获取登录态。")
+        raise
 
 
 if __name__ == "__main__":
