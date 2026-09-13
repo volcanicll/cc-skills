@@ -2,7 +2,7 @@
 
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-green)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](#%EF%B8%8F-安装)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](../../LICENSE)
 
 把任意 Swagger/OpenAPI 文档同步到本地，通过 8 种固定模式离线查询。为 AI 编程助手（Claude Code、OpenCode 等）设计，也可以直接当命令行工具用。
 
